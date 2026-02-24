@@ -1,0 +1,13 @@
+# PDF 文件（太大）
+*.pdf
+
+# Excel 和 CSV
+*.xlsx
+*.csv
+*.json
+
+# 旧的备份 HTML
+*v1.html
+
+# README（可选）
+readme_20260225_004236.md

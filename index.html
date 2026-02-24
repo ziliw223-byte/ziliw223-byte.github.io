@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家谱世系检索</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #8B0000 0%, #B22222 50%, #8B0000 100%);
+            padding: 0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #8B0000 0%, #B22222 100%);
+            color: #fff;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 20px; text-align: center; }
+        .header .search-box {
+            display: flex; gap: 10px; max-width: 600px; margin: 15px auto 0;
+        }
+        .header .search-box input {
+            flex: 1; padding: 10px 15px; border: none; border-radius: 25px; font-size: 14px;
+        }
+        .header .search-box button {
+            padding: 10px 25px; border: none; border-radius: 25px; background: #FFD700; color: #8B0000; font-weight: bold; cursor: pointer;
+        }
+        
+        /* ========== 横幅样式 ========== */
+        .banner {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+            color: #FFD700;
+            font-size: 36px;
+            font-weight: bold;
+            font-family: "Kaiti", "STKaiti", "KaiTi_GB2312", "楷体", serif;
+            padding: 15px 60px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 30px rgba(255, 215, 0, 0.2);
+            border: 3px solid #FFD700;
+            letter-spacing: 15px;
+        }
+
+        /* ========== 主页菜单样式 ========== */
+        .home-menu {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: calc(100vh - 180px); padding: 40px; gap: 30px;
+        }
+        .couplet-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 100px;
+            margin-bottom: 20px;
+        }
+        .couplet {
+            color: #FFD700;
+            font-size: 28px;
+            font-weight: bold;
+            font-family: "Kaiti", "STKaiti", "KaiTi_GB2312", "楷体", serif;
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            letter-spacing: 12px;
+            line-height: 2;
+            opacity: 1;
+            text-shadow: 0 3px 6px rgba(0,0,0,0.4), 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        .menu-title {
+            color: #fff; font-size: 16px; margin-bottom: 10px; opacity: 0.9;
+        }
+        .big-btn {
+            width: 280px; height: 120px;
+            border: none; border-radius: 20px;
+            background: linear-gradient(135deg, #B22222 0%, #DC143C 100%);
+            color: #FFD700;
+            font-size: 24px; cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+        }
+        .big-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 25px rgba(218, 165, 32, 0.6), 0 0 20px rgba(255, 215, 0, 0.4);
+            background: linear-gradient(135deg, #DC143C 0%, #F40F0F 100%);
+        }
+        
+        /* ========== 页面切换 ========== */
+        .page-view { display: none; }
+        .page-view.active { display: block; }
+        
+        .back-btn {
+            padding: 8px 16px; border: none; border-radius: 6px;
+            background: rgba(255,255,255,0.3); color: #fff; cursor: pointer; font-size: 14px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.5); }
+        
+        /* ========== 页码按钮网格 ========== */
+        .page-grid {
+            display: flex; flex-wrap: wrap; gap: 8px; padding: 20px;
+            justify-content: center; max-width: 900px; margin: 0 auto;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 12px;
+        }
+        .page-btn {
+            min-width: 50px; height: 36px;
+            border: 1px solid #FFD700; border-radius: 6px; background: #fff;
+            cursor: pointer; font-size: 14px; transition: all 0.2s;
+        }
+        .page-btn:hover { background: #DC143C; color: #FFD700; border-color: #FFD700; }
+        .page-btn.active { background: #8B0000; color: #FFD700; border-color: #FFD700; }
+        .page-btn.highlight {
+            background: #FFD700; color: #8B0000; border-color: #FFD700;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        
+        /* ========== 图片弹窗 Modal ========== */
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .image-modal.show { display: flex; }
+        
+        .modal-content {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 90%;
+            max-height: 80%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .modal-page-info {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .modal-close:hover { color: #333; }
+        
+        .modal-image-container {
+            max-width: 80vw;
+            max-height: 70vh;
+            overflow: auto;
+            background: #000;
+        }
+        
+        .modal-image-container img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .modal-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+        
+        .modal-nav-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #8B0000;
+            color: #FFD700;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .modal-nav-btn:hover { background: #B22222; }
+        .modal-nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* ========== 第 196 页特殊处理 ========== */
+        .special-rotate { transform: rotate(-90deg) !important; }
+
+        /* ========== 版权信息 ========== */
+        .footer-credit {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #FFD700;
+            font-size: 14px;
+            opacity: 0.8;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <!-- ========== 主页菜单 ========== -->
+    <div id="homeView" class="page-view active">
+        <div class="header">
+            <h1>📜 汪家村族谱</h1>
+        </div>
+        <div class="home-menu">
+            <!-- 横幅 -->
+            <div class="banner">越国世家</div>
+
+            <!-- 对联 -->
+            <div class="couplet-container">
+                <span class="couplet">唐封越国千万户</span>
+                <div style="display:flex;flex-direction:column;gap:20px;">
+                    <button class="big-btn" onclick="goToFreeView()">
+                        <span style="font-size:36px;">🔍</span><span>自由查找</span>
+                    </button>
+                    <button class="big-btn" onclick="goToSearchView()">
+                        <span style="font-size:36px;">🔎</span><span>查找页码</span>
+                    </button>
+                </div>
+                <span class="couplet">宋赐江南第一家</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 自由查找页面 ========== -->
+    <div id="freeView" class="page-view">
+        <div class="header" style="display:flex;align-items:center;gap:15px;">
+            <button class="back-btn" onclick="goHome()">← 返回首页</button>
+            <h1>自由查找</h1>
+        </div>
+        <div class="page-grid" id="freePageGrid"></div>
+    </div>
+
+    <!-- ========== 搜索页面 ========== -->
+    <div id="searchView" class="page-view">
+        <div class="header">
+            <div style="display:flex;align-items:center;gap:15px;margin-bottom:10px;">
+                <button class="back-btn" onclick="goHome()">← 返回首页</button>
+                <h1 style="margin:0;">查找页码</h1>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="输入关键词进行搜索..." />
+                <button onclick="performSearch()">搜索</button>
+            </div>
+        </div>
+        <div class="page-grid" id="searchPageGrid" style="display:none;"></div>
+    </div>
+
+    <!-- ========== 图片弹窗 ========== -->
+    <div class="image-modal" id="imageModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <button class="modal-nav-btn" onclick="modalPrev()">◀ 上一页</button>
+                <span class="modal-page-info" id="modalPageInfo"></span>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-image-container">
+                <img id="modalImage" src="" alt="" />
+            </div>
+            <div class="modal-nav">
+                <button class="modal-nav-btn" onclick="modalPrev()">上一页</button>
+                <span style="color:#999;font-size:12px;">按 ESC 或点击空白处关闭</span>
+                <button class="modal-nav-btn" onclick="modalNext()">下一页 ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const indexData = [{"page": 1, "text": "EA ESE 7a A= an x Be De3 aia ™ (ie= k=. =zr rte Soe 证一 eet -$i EH ag te © asESaw tc titf 7H i >tte| ke iki azi F 所at EREwae 中\"ae asHF 5", "filename": "729e5307d7cb7430051bb56a6fb462b8.jpg"}, {"page": 2, "text": "zwaeGE éRET PE BBnee bee (2Hmaz ~ Ge |?Fa a RF HF AeaS ope fee RERM BK veHit Ree ABe i Ok BY7 WWwe i Be EBS\"Sean my |e=a @AE A Ae HEDR AERA ROS Re OR PRA BAH BS + RT eSHEF + OBE ee BeBNRAAEFI ARPESRe NHI BARTER .RA IK BRT BBM AK IK RSot Warr rere aST rete ©", "filename": "扫描全能王 2026-02-24 14.35_page_001.jpg"}, {"page": 3, "text": "一 WEDD ae a Sh beh Oh UB AT VE |SBE HH oo Hi] Ne (BI a] ge BETH oD >) So a KO.SH BR eH He] BERR SewAA HH) oo | SalISH HEH SSE] Bp my Sar ORke BY HEE) > a mt<< TT atSt) NKNEHEM FAASSn > Woli+oWKH MH) LI +R=A WE SK) EH HRSH HEN ys EE) HI 4 NN SS 5SFNEKSHB >33k Sam Ht At EE", "filename": "扫描全能王 2026-02-24 14.35_page_002.jpg"}, {"page": 4, "text": "&areaN‘aN一as 三- a\"5 5UF RAM | 尝 是 亢 江 半 , 罗 来 湛 寺中 此 六 片 当 国 万Z BAW Sh IK WEF RAO IK FARES IK SUP ASF] Sa FBS + HERS UKRF  FZRRBtMlSi ee ae Lae 2 Bee Ae aesAS BE GR Ha BE Me", "filename": "扫描全能王 2026-02-24 14.35_page_003.jpg"}, {"page": 5, "text": "|ng=4 |水wHE> * BemBehk FRR 泛ZRAW SH IKea pe A", "filename": "扫描全能王 2026-02-24 14.35_page_004.jpg"}, {"page": 6, "text": "IN GsUl Be RB ER RY人 PaTEAS Le — id beadZRAF ER WH Op me mePoe W = ee oe Be ¥ agBERR 了ae. a 一 这\"hae alee | OSae re pe ~& Wet Bere. —me Mh Bae ie eek eTHERE naa cla leeam gee Be” a)my Al| thM区w|", "filename": "扫描全能王 2026-02-24 14.35_page_005.jpg"}, {"page": 7, "text": "yp45FAFE eB: eaeRE E LEAKsf gee pageES 2We Fe BHF ASam if sam AMENa Bet ee PAmI RARBTEFnp eEW AG BAMAR HAF 二", "filename": "扫描全能王 2026-02-24 14.35_page_006.jpg"}, {"page": 8, "text": "BaRZRERNKFE HA Hd HR OE SdCELL LELiLe ie cAHBtEF MW LABRALT wsA= we YO RRR AA IB w]eDEK AEF “4 FAK HA EF 44 Wy =", "filename": "扫描全能王 2026-02-24 14.35_page_007.jpg"}, {"page": 9, "text": "E:SJ AHERRSs oe & FA |a eneFH BG BEa水洲bidBieaNttRAh HeRM TRAF ABa R— e+ RER= BH PT eee e:x Ub RGF BRmh Ae a a", "filename": "扫描全能王 2026-02-24 14.35_page_008.jpg"}, {"page": 10, "text": "CCL Ea ayFe Fe BE 3H *y= “SeU 3H Hh AB ~FREWEuh 3 AE Be Be heHae BBABFECL eaFRBKRKRF—-REAR HE WHE \"BA-HET AS PA ewe mx As *HEPERRT WR SR TEBAM Aw Do FF wba fl] eRROAT HF 5 ne * 3", "filename": "扫描全能王 2026-02-24 14.35_page_009.jpg"}, {"page": 11, "text": "人 一]E:HES AFRde Bid ERhl FR RKAL | HARBel 9 SFE HR BeA) OU = Be veal BA BRETBSH WE oeHR RE KB |WetRR AWARE T SHABRK A RRREEAR EREx HREF  HKEAF LESHwl BP i AE A SE fe SF TZ — Ay id SEFRG BE BR tly — Fe ALBIS", "filename": "扫描全能王 2026-02-24 14.35_page_010.jpg"}, {"page": 12, "text": "ITR三&HEB=ReAR AFRFTERBR SD A eee ASSUHR KE FS  BRRBF =EMAL RMA Oe PRERE SALEZFAFE RB TS eB is Le", "filename": "扫描全能王 2026-02-24 14.35_page_011.jpg"}, {"page": 13, "text": "|i RE WRE REDEli 6 w= 4h ek 4B eK= te Bek oRa.7K-  §£' ajktt+tRH", "filename": "扫描全能王 2026-02-24 14.35_page_012.jpg"}, {"page": 14, "text": "FE &FERETEFERERF 7 | oxSF A Bet eg Aily 38 1 aH AB BE Ht ZH EBBmor Ame we ee7B PR A EB 2 Ae GO AEFREM A SH RIEM RT RM FyRib H+ RAW RA Ae Ee BAL]SZ2BARBZAR RATT FT =SAFAFFFSREHoC BS Pa] —ae STE 6 — AEE OBBT EHFRO RS Helh 3 AR PBee oa te3K bt AE EG BRBRAK SI BERRSHARMA RH ET RK WI],ih $6 Ht EWMh 4 2S Wo Be at ew a: aRFH PBS HE +AEBRELRER AERAWERKIW KEM REa—-Fak AlsBEA SKW GEES RA ETT zFHERAAMBANKBRLHS BYE—HMHCEARES A BW Be Le", "filename": "扫描全能王 2026-02-24 14.35_page_013.jpg"}, {"page": 15, "text": "2E:FFHeMigWkattR端 +eeRH AS RR ESER= BM =2-A20 Se BWA eK 尖AVF) HARTI FRBSRT |ps Pi wSAFIAARAAT Se PE源 RANBKRATARBAEF 名", "filename": "扫描全能王 2026-02-24 14.35_page_014.jpg"}, {"page": 16, "text": "几 hhhj!! 上 11EA型BRxBUFR ARRRAERR Bea e=FRM ETA So PA eesABHSFOREMRMEF BEBEBay Me OR Sw A I AYFRE KRERKWA EF “ss BARS", "filename": "扫描全能王 2026-02-24 14.35_page_015.jpg"}, {"page": 17, "text": "=44wtifii x. >ARE ASMA AMI EAFEXEADRRW RK PY Si A DGKIRRKRF— BSA uy 38 tr T —TIBSEoO AEF See A BMI MAFRFANFAHAKRE Gp REAP", "filename": "扫描全能王 2026-02-24 14.35_page_016.jpg"}, {"page": 18, "text": "kK RKMtH-KUB LAW AAoe FA a 9 Uae as Kt ET+ RAK NF CM BS= RL MEAN ARAM AD Mh HADBe ise Un Se A Ga HE", "filename": "扫描全能王 2026-02-24 14.35_page_017.jpg"}, {"page": 19, "text": "ix+BFweMEW ERAWE A w= Ia SBtetEA EE PtFO REFWoke RK RK BEARMAaK ee es BaseK[Fa— ee EM RPE wRRw HEE “ss $M ma ot", "filename": "扫描全能王 2026-02-24 14.35_page_018.jpg"}, {"page": 20, "text": "YZZ73BA=FAMARUT OH#8 H EBS Be mM A ae,uy 3 RO OH AE oe AeBn A we + REFROEM A wR HAEAOR Lee RAREHF Rw RK A Betsmat FA BR Be BG BE HIE T — Ys7B lee A WR RE HelePET WU AR BE Be SE BE Hh FLY", "filename": "扫描全能王 2026-02-24 14.35_page_019.jpg"}, {"page": 21, "text": "Pd+iFiidWitattEsSkt BKxk==H#F RARE[2S BeekmerRrawaes 汪\"[RF — NWeaet aaa StqPRe PF OMFS CRB TES TEae HIKFAW ERA EF", "filename": "扫描全能王 2026-02-24 14.35_page_020.jpg"}, {"page": 22, "text": "诈 IHhhhi | | 有4b|Bet FARA eT RAPBel sh FA A Fe eRBF Bt SAS Ut ye BY ARe F ROE UBET MET RHsep” BAX-ARHBATEEB", "filename": "扫描全能王 2026-02-24 14.35_page_021.jpg"}, {"page": 23, "text": ":S=ia PRE> 4s EK: awaneKA MS URRAR RWS BA+ GF HH GEM Baa st 4h &证 HME HF Mt BeWARS RR LAST ER | RHALE ht A BM mH IER WY OWeet RRM AB +RENFRRRTRE HR AE REAWARE RMR? BAqi OAR YH A AR BE_ [tert aeaenk He Re= 总 [于 将 国志 此 | 人 3SRPA FRERM A AE By 4HRP RRP ORF G5 ES", "filename": "扫描全能王 2026-02-24 14.35_page_022.jpg"}, {"page": 24, "text": "<ZBiRB= R— Ae =# BA KY.i = GF a eeBY J 28H BeBE + AE TG HB— BEA AR A A BR 42aEE ReR+ EK PL Bike aSF—#-RRO WF AU— Fe-HRAREHAH Le SA MaleKRAGCERYREF Gy FBS", "filename": "扫描全能王 2026-02-24 14.35_page_023.jpg"}, {"page": 25, "text": "ES办$+BFHefiwRnNttRBEDAE-KYW AAA HR二 FARALHEMe R= AJ Sah taAree asta WAIIAARARA ByBH FCRRREBRF “65", "filename": "扫描全能王 2026-02-24 14.35_page_024.jpg"}, {"page": 26, "text": "_—_______| 8ZEzcei4&EK RRR Efe PEE BR RE Sh OW 和WF el He HE BBSKRSE RMA IHMENKT ARR— KE AAS He A 柳AkwWo tects A +e AlaAFKAtR-F =f ei=AKBHRAEA RAE ZSGEM THF 5 RTA F", "filename": "扫描全能王 2026-02-24 14.35_page_025.jpg"}, {"page": 27, "text": "&:2) Ee & RH| et ob AA2 [RAR -BT“[BRAnTEFR KH ie BEERE BBERK RK ifalam Fy a BE一 光源开导 全 REM | AEF HEALA EK WLW RAAKHzter BME OT MATERIm i B® FF i Be — A 3kHF ak HB= Ea 作证 出出 上 * B =HR四 本 中 e+a fe Ee Be AYAB 5 #", "filename": "扫描全能王 2026-02-24 14.35_page_026.jpg"}, {"page": 28, "text": "二a LFBEa—# RSuy FEaNA Bw RABRAtEADASH A +R,HRAFBSBKEA ERBREF EF UKM AWFRA OR ABA AESWAASEtOFRRKF ORESAUFCH ARAM RE-AFTFRE tSBtA-KOFRRKARACARKH ALEMA RAB 2-ABRAWA WeBAAAF A WABRALATCKR EAs", "filename": "扫描全能王 2026-02-24 14.35_page_027.jpg"}, {"page": 29, "text": "QE&和三“4h 3h 4h| BRE RE. ah ifiWe 进s Se5 8ot ¥$in uhcinR", "filename": "扫描全能王 2026-02-24 14.35_page_028.jpg"}, {"page": 30, "text": "Sb mo) AMR OStw SBS] FoliisawDUPE) KHER RSC) wee FeHHht-省 山 国 对 +} ey 4asq| sess SdseHBS GER] REM SA!) LAA) SH Olt Vase| Ye RR SES) | cpio) WKH) 日 十 者 至 上 一 日 二 十 日 十LINES fae eek SoS es eet) e+emt rbom | 1) HES Swe] LN Ee] aN) HES eoXRPEOR SRBRSS m+s0 || PSNOH KINANESKOR me we OS 4H) t+ MostYeh BEE mm] | NB ee Bat] He SR om te] BH | U1) FO HOEWS SR SSH WISH POPS] SHR RoMilil+ou+ BWAmom+ wetad DE+wUy HPSsBUeHSS SEK] RAH RK) | PO) EA ooHHEN ps] HEN HEN] HRA NR aHsta RX | MH KE aHWHeEiAaAkxt KR YD SE FESHUN NED | > % ‘ 人站 3", "filename": "扫描全能王 2026-02-24 14.35_page_029.jpg"}, {"page": 31, "text": "时 蕉 芭 劳 山 [ 夫 妻 俱 权 芭 { 千 时 夫妻 俱 _- 月 日 时 生 一 KRRER山 辛 山 乙 向 芭 劳 山 子 还 生 女 四 RAE S长 女 嫁 西 源 _ 元 一 九 八 五何 家 园 江 烈 年 乙 导 腊月林 为 妻 次 女 利 六 日 成 时Meee 公 盟 于 公元春 为 妻 三 女 一 一 九 九 二 年Sere SH Ss [HII MRRMREAKE || CAEKme KS RK | KK BKE+ RH | PKKELS王 午 年 七 月 和seome | BOLtk 3M BR ESKB He SF IE正月 初 五 日& 2 mM eRHa RE KK7B WS Ws 01 HES RE BR GB te 十 六 页", "filename": "扫描全能王 2026-02-24 14.47_page_001.jpg"}, {"page": 32, "text": "GSowaSa=EX并UNSHOUtCFOIBF FF KRW -BATT REHAANARHFARBRAFAREATNARALSee A ee Se ee ee bsA-A-AETKKS MS Re FH aBA HH ALBIS Wo Be 4 WE ae a |", "filename": "扫描全能王 2026-02-24 14.47_page_002.jpg"}, {"page": 33, "text": "E==Ps+irWe KES Hu FH MR RBsi MH BAMA RR REE K WObs dis eA Hy JN AR ABW Be oeWAT @ Wm Be ee AHEM MP ABA RAFQwFnrBXkaneFRASFR Ht_[PXAFM—BAtC RMAC RM FeLPT OAABS ht Aa A ”三q PACE ARET RRR TOF HZHUH -SANFASEMARE A", "filename": "扫描全能王 2026-02-24 14.47_page_003.jpg"}, {"page": 34, "text": "rawhAASRTR-HE EREBRAM ARWAELKRHAKH W dySR-K+TAM A SW aw eTHe AB BAA ER BAKEAF AEF SO REEA AAXBAARABARR MG kiKM CRAM A MMA BS PA RsBE R-AKATRERM ARE shy SFHRABMAARE ARTE TI] fe", "filename": "扫描全能王 2026-02-24 14.47_page_004.jpg"}, {"page": 35, "text": "»E&=EWRF ERIAy Wo BEE Hfi BE AE至 关卡 来 到 上 证RH AG BEwR RE | RARE ieARS WRK REY ityULB + uF Eat全 hiae ikl Pe A AF 5G[ae Bh di 3 5aT ge A ki =", "filename": "扫描全能王 2026-02-24 14.47_page_005.jpg"}, {"page": 36, "text": "洲对 本 由 过 主 峡 证 > 水 序 ”三 站 守 过 证WRF F BPM A RF PRYPit FRR TT HEA RHR\\RSRALRMNRE FH BW eeOD RRM BAR AEF Be aDLAM KH ARH =B-KANRMS oe 半 =ERLERRR--EF =CSF RM ARE =", "filename": "扫描全能王 2026-02-24 14.47_page_006.jpg"}, {"page": 37, "text": "IE=~a>+Fxfii FRA AARa wl 3a FG 3 4 7B: BAX — 2HR ABEBRWAEFSQT=aguRtT REDE ROLED, [AXE RB WM REXS| RMSE AER TELE OBa (-XERMRMERFRUONART ERRER I CA Re AK ae", "filename": "扫描全能王 2026-02-24 14.47_page_007.jpg"}, {"page": 38, "text": "a| ~BREAS RF -KABHTR-KAERRARsZH AFREBYHA RAPA A OSBIAARTCF MRR CF OER ARTESEIN AL AKAM ASARRH TR EFOF BMERMREA PHRMA ELE", "filename": "扫描全能王 2026-02-24 14.47_page_008.jpg"}, {"page": 39, "text": "Ei及is5fa olBFBAtaHtaBinaR| ERRRKRY-JZF—-RR it A_|AZFRRSIKRAERES A 丰[|ABRURBRRMACSFT )ii Oe A BA Se ie HNAR AD the eB E+ Z BB “80 =", "filename": "扫描全能王 2026-02-24 14.47_page_009.jpg"}, {"page": 40, "text": "AirsBRaZKREAERKER A FRES— OSLEBER ZAAMEREAF RMSree Ey Ulers tbe eda-AKBRAERE GRR + RDB ERLEEGARNAN ERE MINE — BFE", "filename": "扫描全能王 2026-02-24 14.47_page_010.jpg"}, {"page": 41, "text": "E从=Ei=LCeEwe, S.= Wt A 3hVeer‘iCo edve] = PE MDAUER Ht Ee OWa ereBe BRIE 6 AA4 IN BESav -HRH  RRORIARSHS-|WuReek Beene eaane+PEW +S WRF OS FAW A-IF ERAGE RW AARA HEEALM EME Sy i Ht 5G BUR A", "filename": "扫描全能王 2026-02-24 14.47_page_011.jpg"}, {"page": 42, "text": "yeEih+RZE=F SAO ARAW EEMt AF HEF oe Se =E96 + BEG A ER = ETi” — ELS Wt A Se FI+H EF il Set BES RR A Pe EEEARASH FABER WK AO HRTX= Fe lh H ABATE BF Be Mt HEY,Hts iF RARER RM ABAF HM TH HRoWKRETEHERA ANE B= 28 we FOHH WEAF ete Awk EM AAAZ SHARESBF eM RAF ENS SRRe Of CHAR Kil FASA— Beee Ty A AF BS wt AE TG Ht", "filename": "扫描全能王 2026-02-24 14.47_page_012.jpg"}, {"page": 43, "text": "中>ix= it下 ifi于 fl ¥ A2 uly是 =ul 3%Zei - KRM eeREREEAET HR= | RAB + E— 2 we AE EW+ | AF BF Be ek<|AAAHACFS RRIF MCRL R+e CH ADA AK-LBALRA", "filename": "扫描全能王 2026-02-24 14.47_page_013.jpg"}, {"page": 44, "text": "BaKSETRERE TZ w CEBRPFLFRAMAWAS FA FR AlsKO AEE AEDES th 38 A] =EXNFARHEWRARS SR N 广 至 一WHS HBWEMN ARES RRS", "filename": "扫描全能王 2026-02-24 14.47_page_014.jpg"}, {"page": 45, "text": "&ie==+iF党 5三rsoSm|S-KH AOR ma sTF WHER=[AESTH aS Seo AnKEAR+JSFWLF—F | WHERE HHAS|2RU EERE EP OKELANENEAY HM POOF fo AR A SEK wR", "filename": "扫描全能王 2026-02-24 14.47_page_015.jpg"}, {"page": 46, "text": "小 和 和 和 入 和 用 用的EXPda= SEM tAFRAKERKET EEREFER ALAWERLASKEA SS .FIX ZHAFRSAKAAGFZHR=ACFALEMABSAKTE-ANZROIUTKERBA zPO KR ARABXAEKKS RH AH] 2", "filename": "扫描全能王 2026-02-24 14.47_page_016.jpg"}, {"page": 47, "text": "LE |在入efiFa |uA RR AKER EL SERALBS 一ay H Bl mY A — ok We ES TYELA Be Ht BAY ke EAN FERRETWe eBN= 3 — He 3G Ae Dee po 玉REE A HI HW Me th RESHitct-KeEnAARE REM 一= | F BB AUB: 8 96 tt Be re Ba te eB+A RENF SHEAR BRS OOMY eB = A WE EE BtAI-NAPCRERRERARAEF SS", "filename": "扫描全能王 2026-02-24 14.47_page_017.jpg"}, {"page": 48, "text": "re |. |aw| nNbo || ai Ja= Blth 3ZkFaRAF-TERF ARE FRRROSHeTAN ARK er anls |SKARM RABAT  ZkKMAX| Ssa i Wt A BW tee AS a Re + AE]", "filename": "扫描全能王 2026-02-24 14.47_page_018.jpg"}, {"page": 49, "text": "E |从 |用ag+oe |BKi2vS洲入 修 天 着 三 测 十 攀 于 庆 于 而 = 呈 过 区 烙-)AB= BW 2xtaBu eae newark+I+RT WRAEFZKEE-ARBKFi ame ye BF) RAR ABAKl AeF | SAA SRMAILAT ER天 全", "filename": "扫描全能王 2026-02-24 14.47_page_019.jpg"}, {"page": 50, "text": "Ke ee Lee Le oft Wan act aT iC—O ,| 人 == 和 人 人们 4Vieee| 一了<i -AWESEER REBAR ARRHFABSRHH-ORABWARW ERS .HAAF ERE AIG A OPE re BLSBES DO 2b 2 Sh = WM He FO HH A EY =A+ REVLARRARS-L AEP RE", "filename": "扫描全能王 2026-02-24 14.47_page_020.jpg"}, {"page": 51, "text": "E&入sy+ee |YeKiWeaseerieESq+ RESTA RM FR ARAZK=[/=SREAKE+H HS CHEETA+H FF HMER-F  AKAZ—KHA|FEREWAEAE YY RH aABSRt ARMM CSF of MEA ll", "filename": "扫描全能王 2026-02-24 14.47_page_021.jpg"}, {"page": 52, "text": "是 |-iEe’HA+HBwt A eS 办BEF[x iatWuaetHRORB R-PIAREULEKEEOHA K A eB ET] SsHETEF ihe —-FeRe ARDSBEATE RY BA- AAEM yeKDAFT ) KRT¥REROWKALS", "filename": "扫描全能王 2026-02-24 14.47_page_022.jpg"}, {"page": 53, "text": "E& |i=ie2,]= |+: ss ie, |4 |ul RAB TEEN ARERRMBtCAFAIOIR-KBSTERPF AEELM At Aw Bae — FP BY= BeFE dh AF BEF BHAAUT-AMASAREAXR SRSqAAAZKTA-APKPAEN AY=| 44s RB Ee RET SE+/RA— RGN EMRE RAFOFEtA FABIEN AAA RH RO HB EFRIMKAF OHS ECE NS HKRFOR", "filename": "扫描全能王 2026-02-24 14.47_page_023.jpg"}, {"page": 54, "text": "aynewi Bt| ol三NBWKRAHABWUEERS 2sWEBRSS +RAWM ARK PY RSBeRWKTAFEWRAF waleBSREK-HEFR BIR EY ZH EeHAAN REHAARARAEF 1 AWS", "filename": "扫描全能王 2026-02-24 14.47_page_024.jpg"}, {"page": 55, "text": "E&入到+io |wefiiWeas=aRSFHMRENO LR LRT eT=|S-K4AWeH=HH A 2xte-s+ [FARES RR-— FF RA HSAPGST RMA AE EF MBA", "filename": "扫描全能王 2026-02-24 14.47_page_025.jpg"}, {"page": 56, "text": "r eee ——™ =ne .| =.=aeLe 2F=20uRMACAKREAMAKEL EOAKFRRLTREDE TR RORFALSTe had Tees) Lea Sale—KERREEAERBD ME EERELEREEMERERINAE SERN", "filename": "扫描全能王 2026-02-24 14.47_page_026.jpg"}, {"page": 57, "text": "E=~By5 |+iF洲HiWevsEggsRBBan ht—-KAB HT R-KAEBRLA=~ PCZCHMAFRLEBO ARASH A+PBLABRTCTF HORS tCFOERAFA SEAM AL AKAM LSAKRH TRRI+OFROERARBEA PEMA", "filename": "扫描全能王 2026-02-24 14.47_page_027.jpg"}, {"page": 58, "text": "| ie eee lll WY1&RM ERMA SWS we eSHil eFeVe Resor em wd;RAREEALE RGAE TTRAMA HEF ROR +S HAFB ARGH AM A AARBXK=HFFAOTARA tAFRI-HMRERAGM AK PL ttsARSLAM A MW WB a RT NeHEAKKE+CRER-FH GF Ale—-KRIEEFREWEBRAES i (Ree", "filename": "扫描全能王 2026-02-24 14.47_page_028.jpg"}, {"page": 59, "text": "E&<agPees |ee |iF游Fii SI Gaa Fa Je EH: Fd x A RBA ttRAEiy 3 BY Iu BRESAi@iroRh wh SRF HRA_[HASH ABR A REF RRA| BTROET H+oAWMASgq) TRREBA Bf KA Swaee Os", "filename": "扫描全能王 2026-02-24 14.47_page_029.jpg"}, {"page": 60, "text": "隐 ll ALE EE 必 本ns |办leesSB —KETRASWERAEACASTREFARSFREBRARZES AlsWA GRO HNAE a A B+ =FG He 3c HEN Hi FR 3G HE BE Re SYHOME A BWA SROF is] #", "filename": "扫描全能王 2026-02-24 14.47_page_030.jpg"}, {"page": 61, "text": "E&eS=i+Po |洲Hiiea类GARR FSAM WH Faes[ HZ2ZeuI OARS Awa Aaet++] -ReSUM AB F Ht B36 it A-[ HF FROR TRAE Ee AI RDA] G+ RAMBO F=NF 5 HSB", "filename": "扫描全能王 2026-02-24 14.47_page_031.jpg"}, {"page": 62, "text": "x&g六 hsA 1,”六eB ERIHA SAR WR EELSKFA a & BB+ dee Fu Bie Wy ETFRAT FNRI AMSRRREKFLEde PA WS uF Be oe tly Hh rk YEFon PROG S—F BM kee RY] eS", "filename": "扫描全能王 2026-02-24 14.47_page_032.jpg"}, {"page": 63, "text": "人 Q入到W iefelBFfa |Ld PG] SES eee ee ee See ae于 RAP K-SRALEEEFSO=SW ASgp BRA RR ET Be TEE oe HETFRA RMEARB--ASY wRUSK OR A ee EA OeSVi-FeFOXR-WeRROCRAD=S|HAASGWMAAEBAALROWA SERtPA CRBAAR AF ARAM tR-= |BEt-ASHCOFAAMOBMRABARIF APSARA ELE ESL MB + RO| | OO", "filename": "扫描全能王 2026-02-24 14.47_page_033.jpg"}, {"page": 64, "text": "可 8 EEE *. :, hl而 放 汪人E} =Acctee| a ZalaiaFaHee CERAAR-RE HACWR HAM A es MT lsCO ee. oe eee ARISEMPOFRRSRMAS A HSEFAR OAR WHER EM, BSE", "filename": "扫描全能王 2026-02-24 14.47_page_034.jpg"}, {"page": 65, "text": "| -加 = |E儿及agmh Fee一 六 十 AB> |HRORF1 和 和 > 个 上4p AE Ay apBY aE A BeeR H++) #8 DD RSF 3i) We We peAl RR EFTel He Eea eA eSz|_ SURFa WF a peWHA eySeek ARBLAWHAAA—-=s[AH AB K A eeeheetene zl+P 2E+RF  HA-FRR= BmpS|SR=aF% fe AAW A EAAPM AEF PT REEW AKER", "filename": "扫描全能王 2026-02-24 14.47_page_035.jpg"}, {"page": 66, "text": "2 Ia aaa)aNANS| =了 ,让SAL UL LE as| Bi Aa AAT] oSFRMPLER+AAFE) Sih # = REA REB= 8Uy 3H HS wb RAE + ZG BAZi BB ok — On + Bd A AEFS WB EE eT AUh a BE BAY + BAU EYFARRERA BHA SRRKASHAF SEM A SER HET WRKBREAUHMEA GEKSEF AL,FAR TLR+ RAK MREth BB — Ee a IBY SUB ue A GE ANAS | FROERHR—- oA STnk A lek R-AMS RMA RRS .RF GHP BGA EM Bt A x]BAe HI BFS MRSS RERoOF 25 BHRANAABKFOIBAlS", "filename": "扫描全能王 2026-02-24 14.47_page_036.jpg"}, {"page": 67, "text": "| | ,|E站=MSPoeeeeBFBAfiHka— |BRSRUHAAFIASERARRECE=|/BI KM HARABHAR—HMUWASE+ | 4 SRR DERE AR LERRB EKOt=—FRtCZ-AE+KREFRAKWARIA SASHA BABTASSARRCET", "filename": "扫描全能王 2026-02-24 14.47_page_037.jpg"}, {"page": 68, "text": "mite OR ———E——— hh i =efe es] RY,公公| 8|U3|SSHF-ARERH AR 过KALASRDKRRE+ TASS A tleKM AB-AWMSRASTH ALSBRETEAEKMRAECAS PE BLEKRKFNRAFAMBRE RU joy WE", "filename": "扫描全能王 2026-02-24 14.47_page_038.jpg"}, {"page": 69, "text": "E人ed到Be |Be iHEaoe BA<Ay ee Abi acdc SW aAle ee ytELertoa: VaAwe |SKK FRAT HS PAR EW EH[ALEK AW ARAEA—FRARES+o + Z 7G A = 8 EI He AEISAS A tA-KtReea msnKEE in) HABEAS Ae BK", "filename": "扫描全能王 2026-02-24 14.47_page_039.jpg"}, {"page": 70, "text": "’ A ee&xesSr.AR— Kt CHTOBEE—-HEFRE DOHAAR —EF ARERR ERANROSRE A RIHH RAR A EH| BCNB+Y Teer meee ele| EF A RAF te a ALASEH ARSE ORO ORT eeSAF i $e tt BAF XH A wy RB |ASPACHRtCSBMEREFE RRS RA+ECAS AFA RLRAR AARAR-KUGARRH AS Wa WR-FREKEKRENR-BBKAEALR ES=A ILBAEM A LAR Bat A BSERERKAZELAWRI-FAMB MREROIAWMARKKF—-RABWRE— 机eM IKE — SARE a Ae", "filename": "扫描全能王 2026-02-24 14.47_page_040.jpg"}, {"page": 71, "text": "E人ieef=+siliweieit BfR#aSQUHZ2RWSORER HARAF+=|/R-REES—-ReR A w+ eM At/ERSFARRET SO BZ RTAPF RORAWACRS HE eww ABEASA BW aE BIE “9 4", "filename": "扫描全能王 2026-02-24 14.47_page_041.jpg"}, {"page": 72, "text": "Aha-大在-R-HR KHACANKKE EEBl fu 4: = PA Bae + oF 7 EL OW HK HEY SAIFF | REAT-AWEWR EATSHAAS AAS we HB AU ob KW SEFEAR SG TE ‘ty UR OF Ee RY", "filename": "扫描全能王 2026-02-24 14.47_page_042.jpg"}, {"page": 73, "text": "i:下<q MREiDfihe 一只EeeF. |Si tAnFKEK SMAI A HA=(RMNARABWABHAI ASEH+ 人CIFRtCAZ-BREAREHA BAEDATALAS HEAR BRARKTES FOR", "filename": "扫描全能王 2026-02-24 14.47_page_043.jpg"}, {"page": 74, "text": "和天 出 进 部 本 藻 记 可 汪 类 总 沁 基yw BRET ERA Eo[eB Ww ES RM EFAWEERKTARURRE Zi ryCO eee ee[Fe RB EAB AKAD nA ew BR oe A7 SE OH ee AE Ht SE WY SE HP =|-AW FAW eH He BRABB ART RO REFUHL RAH WLRLER tLMARR BRR YR Ae PA FosFORAKRERR MET HESSEe a Pee es iFH EFRRRERAEF MAYS", "filename": "扫描全能王 2026-02-24 14.47_page_044.jpg"}, {"page": 75, "text": "a|E=gPoa A Je TUBS 3 EEWEADF HAH+ A ASAE Ai H+ eT he T: B-R-REAie i] 36 A EE| Btu tu= 32 BP ae. 1h 4ZH=RHH—-AS—-FN\\REHR=S SHR= BEAMS BLUE TES TRE ba54+|F#ARFRRAKARKRAEEFAV +s 8 BEE BB Se ZaAIBA CEBAETE RRA Ae TO", "filename": "扫描全能王 2026-02-24 14.47_page_045.jpg"}, {"page": 76, "text": "SES |eees=Be¥ BEAT a8 5 6 AlHEF RMA AW LfHAR ABRBn Pe ARBA KR EFPRO KEIRABHIO ASR 海ALEKS MAW B+ Te PY oSLy uh 3 ak Be AE HR EEO eS£SMAKPFOREERAHCRS BL 一MBB-B=SHSFHO RAR YS LB", "filename": "扫描全能王 2026-02-24 14.47_page_046.jpg"}, {"page": 77, "text": "几入Bg4foo |BsfiWee oe EE Afel BI BR BEE Az|WeSEA RHEE MATwe 8 oF th Wa — eeHEP RA RAE MAESFARASA Re BRB=[wneeok ek a ee+/RRER-F mae WBNSYe IM Bu 源 eM? At AeRISE+AOT (3 BRED. MH", "filename": "扫描全能王 2026-02-24 14.47_page_047.jpg"}, {"page": 78, "text": "| (eae = - - 4heuly 34 Je HE BY ZeBt KAT.- 3 NBSBH EFFFRA FEAA AM UREN AASEe n= WB et ROT ALS5—- WF SMRKFIFABK] =HE ee WB EAE oO aEF WRF “133 RERKKKROR— ES", "filename": "扫描全能王 2026-02-24 14.47_page_048.jpg"}, {"page": 79, "text": "E&用== |+Fi六KiWe从ttLENO -HA | RRAKDTFEAFREASASO A RHA OA RRA x Be EF Kot 7G Swq RMR ADAS Be —FAe—- RB—- RMR TEE 399 SOA FAS", "filename": "扫描全能王 2026-02-24 14.47_page_049.jpg"}, {"page": 80, "text": "Hg T_,SSee,-HEFRINAAAA ARE LNeKeAKRE+ RH Tw EY SaWA-WMIER=ER-F —WMAATESt eG Be A Le AP BL we 2", "filename": "扫描全能王 2026-02-24 14.47_page_050.jpg"}, {"page": 81, "text": "-六 本FROAZSRET HESE| me ik WA = 3 x oe NAwe Se ee ee [eeed Dean eke S|REY eR AEF ee wb Se £SSI AERF ORT ASEHTF IERRNMN ALARM K BAN2 |H-eRBAT RR ST PA A—[EREKAT Hee HBCAFR AFLERRS 小AH Se — EBFSR-ARNAFALK HRM bswR) 和an ¥i CFA RH& Heese k LQ ftA wy Aieee = ttt7 Ra +it ate", "filename": "扫描全能王 2026-02-24 14.47_page_051.jpg"}, {"page": 82, "text": "|Zz ae ee WNHS — A BAZ BE EG BH LY VSD7 4 SUBD a We 96 F = — ar BE PERSB+ AF + — We A oe we +] ENSW—- LAS AeABRBCtFaF— 2HA CCUM TANF IAA SA-=A jiHE LEM eTREM APSSS 8 RAE HT aMAA Rea OY oSKLERHAF-C AP SSAY AY WG iE ED AS EEFBEtWAR TEDHAeBERAKAEEK HR “RIV A+EFKz@HB—F HERE A RAKARATE BE FE-FRAZ IH MeMILA AON HATAA+t HAIN+ Fx MRWy 4 BK ‘| eto .Ro NAS HlaA GB: 一=&4", "filename": "扫描全能王 2026-02-24 14.47_page_052.jpg"}, {"page": 83, "text": "|Ss=|2) #8 A i i HSsae eK BA> fae一 天 产业 其 于L¥ARBit A 2 HERBFtCR—®雪人 出 水 于 HRIOMSA EAE9 Bee Ae HFmH) HFAE Me OW EW FARA Axz HOAKE TRIVeySPe&|yw3ri", "filename": "扫描全能王 2026-02-24 14.47_page_053.jpg"}, {"page": 84, "text": ">&| EFrECRE PRSARELEDRAELEREB—-S—HRRHAATEKEROAP OO AFLEREM- HALAL ASAT -“AFR A SBT EERE HSE_-] -ALA-&H-F=SR-RER WERaS", "filename": "扫描全能王 2026-02-24 14.47_page_054.jpg"}, {"page": 85, "text": "E |i~ |BY |SS ii LENTPRARERKEDSag] 本 = 中 中 了 罗汉= |F TECH UES RH A下 7 NK -BRKBRASEBE时 He Su eH i BR WB BE5eei AsHyatTkvAaRyyatmm", "filename": "扫描全能王 2026-02-24 14.47_page_055.jpg"}, {"page": 86, "text": ">》 ]) 11EN| EAZR =KRWVPRRPSICHHAR-H 2KZTSRSTARRAR WARD ERE :PRERTRELFREAMRBRAtCtHF, =/hSFCLCAARHLAKARSH ASAT —|BealsHieht — ¥十 | 二出 二", "filename": "扫描全能王 2026-02-24 14.47_page_056.jpg"}, {"page": 87, "text": "FMF He4 Ki| UR EREay Esa dee7] ee |re Ra RYES) ke +H |he LE RA —wR AR= ten BA H REE LePaced: i at A IF & it AAAARE RR WADA AmzFe REX F E76 MF i+BAHiWeatt. |yyiygWl", "filename": "扫描全能王 2026-02-24 14.47_page_057.jpg"}, {"page": 88, "text": "AH RAFAARRAR BH ABET RINPRAEAWA BEWRAAE EA RINAMAA ARAMA LAB | ENFROZL—-A+ RARRtERBRELSSWJ — ABnae] 1Bai] a5ce i| HEic eesa |ufzg:|", "filename": "扫描全能王 2026-02-24 14.47_page_058.jpg"}, {"page": 89, "text": "FS4hD WHtCT-REXFRERRAWEE) se BAAN AETSAA ETSRF REM ABBA R及 KRM A CAF +H ww BA Bl 和ROI EAH 6 4-H - BRASSG REN ZCRENEPMCU—ERBie F—-a-#BRDEA EES BH—~ (Sema eREDKAMLPENS SE= [SFERANFAREMM A EAS IKAEMARAEEERPMLGHNEEHSE Beis ae atA OAS5 GH PHHk只tt洲pyasimpa", "filename": "扫描全能王 2026-02-24 14.47_page_059.jpg"}, {"page": 90, "text": "| 遇 SS ee ee a eeTRE 6 WA DAS Ho &pA RA BLK QM th GEM A = ALTEF R+ pe 7’ =RIAT+ERIEtRDET A 大 He Shae ISSABD AEs HALF ASSISThe ae DAP,RHE AAK BR mel 4LFF F [人 一 1~HAAAS Fl ket) —ABA Wc Bt Acaee", "filename": "扫描全能王 2026-02-24 14.47_page_060.jpg"}, {"page": 91, "text": "i> REF R=}E HALAK=y人 BHER—AR= # WF Aie th 7B 4B SUB Aon Ke RE+H-RE. WEAR5 [由 RMLEAEK A taxEr —€—-KASAT ST KwRALERE—AF A BeyEA FRA SOR 35 ok deEAA ERRRE AHF—ERERHE Re eK RKt1—-HA-HZRBE RT |ry ek 0 Ae Du A He Hy J ae YRAL EM A AU x i OF 7Ls NARIRRB‘4 Hee EK De: ALASceayyyit", "filename": "扫描全能王 2026-02-24 14.47_page_061.jpg"}, {"page": 92, "text": "~(BEACH -RE asPo HP ILA gh BH aL-RMREAFF aSALARA REA A Ee =EKFRBTEEBVe oe A SAR W=e—-FRATKABiETK HR mataCAI NRF ATE£70 ba iE WH “Fue A —Hxo- we#—- ER RBA H 4pae a):Hee ee Le amk acemet A DO aS PP: +e", "filename": "扫描全能王 2026-02-24 14.47_page_062.jpg"}, {"page": 93, "text": "_E&i=ngZ BREDA -BASHHE RAE AErg HEF RERBE-R—- Bee += BMA FLFR ARAEOM FHee RSZRNABLAA RT NFRFHAFTARAEH A NAAaBR=A aefi ie =+ it AZ| A tfie FaBe By = +E AS BW& A TUKLets &pyate+六", "filename": "扫描全能王 2026-02-24 14.47_page_063.jpg"}, {"page": 94, "text": "r Wepre eee etFalRKAEKEBRR—-BE * &RHEE FMR AEF MPS| Seep k-Gpent+e “| EXRFRA EF HAH Se| —knke tREWS ReNe =a—-RE PoHEA BH HEE BH] OSHEXFF hae EeMAAS FE MAAS By) ~~EE 十 此 六 于oS|:| ee Le", "filename": "扫描全能王 2026-02-24 14.47_page_064.jpg"}, {"page": 95, "text": "有 RE 县 于yl {RAR EEEFH RK BETRI ReteH+RGRAFH Ae HDa | GB BE 8a A — Be = R RE5 WAS ne Be rete- ae vals aie* — ea A BY NAS Ba[十 证 由 + 46 56 wyAB=a: rae pe: ak eeWieoSte&vrEAq", "filename": "扫描全能王 2026-02-24 14.47_page_065.jpg"}, {"page": 96, "text": "| ||| |AWFHHSRE 9 HELESF| SSAWA RB HEE YN Rant sae ENHH BSR HALA Ee) ENKO-RMAAB AP +2738 t|ZaRHRAELE +H tH- 28) ryAF WA Be aHALAS ek BA ate AE 7G AR — i — F =ee een Se =|-HRER AEF|®a |:® omeba", "filename": "扫描全能王 2026-02-24 14.47_page_066.jpg"}, {"page": 97, "text": "REOFAFAERRE tH SABI AF SH由 HREM AGAR而 X“WIATT mFne H 4 SBA & — w=LER A CAS TOESt isearT aon wo  — 3+ [fanaa FT H 4F Ju A= |HEREREAE BE BEATBR — Hi HIE 6 Rt A AKEHea K fp£ FW FFi ALAS BR7 tt FWeoSLyRBmmavnDi", "filename": "扫描全能王 2026-02-24 14.47_page_067.jpg"}, {"page": 98, "text": "| Sa tory kel| a~EN :DHROBREMTRHE+EER yeH#PEXRFOUB-#H-FX amHE-FRBAFRESAC-] —HA SARMEBAtCFR-=e] -—+ BEG dS Hd AEA GSM)fee :rN>. —a=g:", "filename": "扫描全能王 2026-02-24 14.47_page_068.jpg"}, {"page": 99, "text": "大亚 Ea;E BAAKEBATEEAUX FOREST FE= HM oO REAR 4b= 部 学 人 证 过 证 汪汪ie RKE-RRHATz BWA=AKSOTREE Reig Ate 70 BK LT — EB2 B=2Z—-BR HANES | ZV= KA HAE RMA FF BeSRIEFUMACAS 3H1 Ha>: ¥*ee: itFi Rvit", "filename": "扫描全能王 2026-02-24 14.47_page_069.jpg"}, {"page": 100, "text": "<a ie Ga aap cla 0 pT eres yn win 4HEGit AA FNFEXMARE © | OSFLETRAMIARFLAN EF M/ZsRAAX-KLBERKWEER’ IESMP HELA A BALE A A Bf SCCRG AFEFKEH RI RB + Bi :He Sat th EX WAAR pmBOO FoR AER + Bek BAY ASeA OOS MB ts Bh ak — BR F =Lae ee ee aEROKEDE CRE RO FHt A = — 8-HRASEK GR He LEK BR中 多 中 中 BALATFH-AS PR MA SAS HBOHEHE + 48 76aR=ZeBieed", "filename": "扫描全能王 2026-02-24 14.47_page_070.jpg"}, {"page": 101, "text": "H #2E HO人 AS= #)ue A Hp=~ MEREFERAS-HKEEng At AN A ee HA ke BH= EQECRHPRADtFF= FAW ZW AS Ae ee=~ HRAEDBH ETHHF#REKBWOT— RRBAAFKBERMARHREK nx+ HAARRRFRERFSTo 1c BR ae YLys “Ff -HUPE+ERHUevstttFTh.aeWH", "filename": "扫描全能王 2026-02-24 14.47_page_071.jpg"}, {"page": 102, "text": "本x mh utEWMABRE © esFH RABE Ne r=Ra METAS A ESRU REE Se =— OH wy SASSFORE ameK Be =Ne A 人BR FeMARAE =RBE本HRA FR WE Du AE PRP YeRAF WFax:52%", "filename": "扫描全能王 2026-02-24 14.47_page_072.jpg"}, {"page": 103, "text": "|b REAR RMB NEE Wh RABB= NE<= WRANFE RAE= KHAANA MEATne Kw + RARRA SERFS KAW OY —-KE5 SEM AMA KM BAH Ek BH> PCF RTP OTF EAM RON SPs FAK HIRABROM AAS YWRCFAFSEOERNEM ETreerra Hees OD> A A Sofe GEHeNitR-£ii", "filename": "扫描全能王 2026-02-24 14.47_page_073.jpg"}, {"page": 104, "text": "ii大atH—-FREETE—KE = 对 加AF ALAW XOX Ae oh BH n#| oeAtTHFKAMARAFE A+] —HAS ARBAM TM AS et es#8) SE 7G BEAK Hh BT A 4 > Se=m DaweZe fp HeeEK TR“iim 大 一人ae>._ ee", "filename": "扫描全能王 2026-02-24 14.47_page_074.jpg"}, {"page": 105, "text": "下 ]【 . 一APRON eS \" eSEe] it wt eT AE MeGiAeF RAT REM ORRFX RASHEFER YWhe | 5 WU Bl fe FR Ae2 {rT - BR ASA A |T|-HRAES HES HE =|2 |ARBAF HSB xl“| WAtARADAS of HsiY: SaeeeereFwe oe ew halFi —Z-F4 fix 一PA HARAK it —i RETF ge it Ai it A Ht A YE 十yiitR:zici", "filename": "扫描全能王 2026-02-24 14.47_page_075.jpg"}, {"page": 106, "text": "- ee>EMRARESMARAS ° HR &FOAMS A WE a AE et ay ESBFE ALAKRtO-E #i| BSKA FHERAW ARE | oe] SoS|R-=SHO-KoR AWS aSEF ZHZKER—KR六 中 党 学 古装 4KM HARA ES =BAR LCF EM AAAS BABAM ARAB ET EREANIAHee eK ERmanae myeq Us Z+2 HHnm>...i. ]z55 ge5 os >", "filename": "扫描全能王 2026-02-24 14.47_page_076.jpg"}, {"page": 107, "text": "FH EABE uly Jee BB 6 Fak& CePA S= 368 FGne w=T-A4Pe Eee ees FT RRARSEF/HAAEK EY ERIN F Ley= [META T HESSEN A EA“RM ARAS AR ANSE R+ARSEO e TH HA oCAA OW+E i+] HoTHAFtfoe) | eea, MA twieatttRwim|上W", "filename": "扫描全能王 2026-02-24 14.47_page_077.jpg"}, {"page": 108, "text": "和 人 二 人EFiHAWASWWHEAKTHEREALEHH GHERLEEDRA-Do-aRel oKE-OABEBN-ERHERE EM —HESARRMA LER RECEP ARKE-FRAEMLERERBALHF2E HiEEER bnee:FAIS REit A Si(aSs- 一gi", "filename": "扫描全能王 2026-02-24 14.47_page_078.jpg"}, {"page": 109, "text": "|E人<iGSSA GALHOCTRHRtCL—KR¥ ‘OF 7G WS AE uM SED eh> SHIA FTARZKAFACFHFT= HSER NR KREME AS SeFESFHRAPRLEAM E+Eeaea- 可 入Wia |ttBR |ci可ttRK", "filename": "扫描全能王 2026-02-24 14.47_page_079.jpg"}, {"page": 110, "text": "——+ Mi fareARM ANRKBA ERE 。 Pn,HST ERRRA NET MV SsFI-FAR-KBM ALA ESHAEAARASRRAT SatEPORF+EFZREB— aSOEP AFRADE-KS aFEEA-AERAELEK BH 4S“KPHERAMRTNS =RHEAt—-KREW AAS FR —|RFEMALEAETE DBnReEEHS tTWornS He BMAR |aEd53ea一", "filename": "扫描全能王 2026-02-24 14.47_page_080.jpg"}, {"page": 111, "text": "kD ao ROARED EANE RFEle WA EKER OA1 BS BEY A tS i M38 HF 7G BK ASlcfe eT CaM RI F— RK图 WLAN —- KAM AE ASme [33 tone A Bw= 1k BH HRS Et —ral (es WF— |= Bt WO AS de = aEag : + 5G Bt16 |ti :sal * 并 ttfi :vieYSitFAi.sivay.te epee Serene!", "filename": "扫描全能王 2026-02-24 14.47_page_081.jpg"}, {"page": 112, "text": ": ,半天以 可 本 本关于 人RoR +SEE Mm A WIC A Be =|ERANKAMALHTAERE OSS ENARF AR RAMRFSHSFRGRESAASWMI“ASORECALM ASR) RSKH TAF RHA APSeee SLE, esFUT HARKER]“HA-FEA SASAREALM KOALa ek 国志 | 能DAFA EK RR AEAAAEERALT F 十 关中+H AM AAS — BAPWF-ZaR+ ER HES+H = ikHEBER Be :HAKAS Y :Q \\HAH:wm", "filename": "扫描全能王 2026-02-24 14.47_page_082.jpg"}, {"page": 113, "text": "一 aEHRRTZRE ° itElmar ex xe Xe 这 时Si Eas © Gas oHSIZE RRA NR 3hMe) kk St A $e iHt KB ARF|SRoOAERAK BA2 |W AATF ECF> |SR+EARIS 二HARE EEHASAN AHIBSHPi Meck hE AFSEXaPm L¥-F BIT FAaRa HAS PRE A AEHfe EF it ¥ WFieaittRait=anba", "filename": "扫描全能王 2026-02-24 14.47_page_083.jpg"}, {"page": 114, "text": "BHSR-FRELETBEAE &XSESREATKEKFRRERE EXPRERBF-NA-LH+R-# ENBESMA RELL R—-BeRRM HOR EAA Z +lii ON_KRA-HERER EA#3] hem niteRt A Tal CR小 2° WG MRA A LAR]“项 RENN ARED AR]F CHRMSHEF=H—-Eiia>|==机|", "filename": "扫描全能王 2026-02-24 14.47_page_084.jpg"}, {"page": 115, "text": "F 4 aFLEREEl weyrep& een?ie AAR M AFFne Bae +b Bi ICmnM Doe ARE AAFIAKMAFASS BH BHAT ER> |ZRRHRAATFT BR fay ae= — fi eS A SS Ae Kt At a + Stju RS Ht EA uy He REEhA—®# B48 fu ain REFBt A ASoi feteHE JuBeAtt洲aimaeApi", "filename": "扫描全能王 2026-02-24 14.47_page_085.jpg"}, {"page": 116, "text": "az. &BAAR yabKi Re aNKULA EF = SyBARA + — 8 8 F Et Pecee BY | MERA | oNHH RF H+AFxe=S 3) oo国人 二 Fe BeaAa SPER ,en RAF Bt IG — BAFBa weHEE Epme’ 4sien.==HeeEK De ¢Woke :—4teena==", "filename": "扫描全能王 2026-02-24 14.47_page_086.jpg"}, {"page": 117, "text": "H = Sok KwAKEW KLEE ARSEl) bA-FHeRERERWKKETL AES| AtAR Se Oe eee F He[RT CaRRABSRERK—AETIIE BO ABR EMANKKARRAR< HEAFLEWH DAE中 BPRALNFLEA AEBa ERR AWDA-F  pog= BEAR R-cHepyeRRSF-ARR RFRt HAL ALAT RG EKOSa} % Br PELROFER—-“REDa eg “RIBS AEARES ELol tT Ye HESER -NPRARal RE-FA MAARBELAk 2tty + Nale-EiunDitae eee eee ee le", "filename": "扫描全能王 2026-02-24 14.47_page_087.jpg"}, {"page": 118, "text": "人对 小 | 二EE主因BareHZCME+H RG WoW—-HOKRFEF-KLARHEHSER AERERAZIO-ATY,KNSFERTAF AM AAARALAAHADARRA EHH-LAAA Zt]| AIP| wy ee| H+2g| is", "filename": "扫描全能王 2026-02-24 14.47_page_088.jpg"}, {"page": 119, "text": "F 3» ER AOS RE ADS BOATE FERKALRE REM HE KMSl-p#e# che SSL RE RFZ=IREOR-CEREBRHA 加 六 上 过[| CA Pee 2 ae eSSSRLELELREPLH\\—RaM5 de MY AF eB at HE Ae we> |FEASASRUERATAT AF~ [AKT RTS RBSARAS = YeCEAH-HAEKRSD EERE+党BiiierNizTevit", "filename": "扫描全能王 2026-02-24 14.47_page_089.jpg"}, {"page": 120, "text": "Se ie f+ te ee 4 2) ka机 二 着RSW AELEREALREAA— Wa] OSen etd PL Lace ae el bowKEL M-“ALAMBLABtAF k] ENRE URALTRE ARE EH A 1A k| aeHEMERF-KIR REM ORK rityHee] oSco Bon| BEA uy+a=5", "filename": "扫描全能王 2026-02-24 14.47_page_090.jpg"}, {"page": 121, "text": "ol cowEREnERES Be 4 OK=REEERZAR GK M EHGE] s=kns—-naa-F Bi BkS[RUKREE APT ARE Hf Lae| RSH BAR ARF te ABa BAS Be HORAS| a Ra AE |2 [HTFAMHAF ACTH |~ [UBB PMA ARS |9 8 EREafiiitAitR4aeee", "filename": "扫描全能王 2026-02-24 14.47_page_091.jpg"}, {"page": 122, "text": "KLR+ EF TR MHA —B— &&a DAS HE = A a +E POCREFERZA+EFZORHANASTESNRMB ES KERKRS EK FM BSROF ATS — wp AF 7 BE eo eH8 48 46 3 S PeBima k| oeREM BAY —ce)3s 48 1) BL BLeee E=*—S— EE", "filename": "扫描全能王 2026-02-24 14.47_page_092.jpg"}, {"page": 123, "text": "aeD REXSRKRRKIMKWHARCFEEE) x— XI WAH SERS OAG)f#rk2 ee ESF AEM Ae x MlS| AETKGA MH ASAKRAKD A BMBe] 1 28 BB AB Se SE Te A IS EEZ 一iBiiHenNittF+i0", "filename": "扫描全能王 2026-02-24 14.47_page_093.jpg"}, {"page": 124, "text": "“4GFRERIM 党BAKABS Me FRR NF e—-PESATEREX?’ Manta tA B] EAp— Wi oe oe ih HEt+ZHK ISSELE Bw dé + a — |BRAK BH aAFIMF =Heeex Y =EFS| rN|=5Azll_\\", "filename": "扫描全能王 2026-02-24 14.47_page_094.jpg"}, {"page": 125, "text": "AREA ECFERRBREDR-ESGKLEGER XM ARKAMFORAERM ASl wo EREMAR-HTEPF ARS=(AEROF—-RMORREFOAABE+BILE RA EARL REAM A ETH MB+fiiUSitz+iPe eS re", "filename": "扫描全能王 2026-02-24 14.47_page_095.jpg"}, {"page": 126, "text": "让 说 |ES gas-AR-KWH AEA S =| SSit BALMER TEM +2Ep Nb Fe NB 2B HRKe AARKBA SRE 二 aE SaaS-FORRB BRAT it =| iiAOA 了mak BH aHee a db |HARTeitTS|=z=区", "filename": "扫描全能王 2026-02-24 14.47_page_096.jpg"}, {"page": 127, "text": "1E| pete eer NFZR ETE oNSIRASFANARAKUAER—+#is WA EAS a+ Zc WH ee Aewe) PT CSFAA-RERB+AFa WALES3 BtK一 © a ae3 HeeS PEE EZiiBeUSiHzi=1}pid", "filename": "扫描全能王 2026-02-24 14.47_page_097.jpg"}, {"page": 128, "text": "KE [内 和SEEM A=AWGH A SAS aSLEKET RARE TEECREF AB - SER OR ie 和ZO MOA ELE RRA PE BY(OMA BOAFKEBAAFT =X| — RoE etreeeee =BAAS fe en+ REFI4=机", "filename": "扫描全能王 2026-02-24 14.47_page_098.jpg"}, {"page": 129, "text": "本 和FE HRAE © HE RAF Me HANNE ME人 1s EA nase d BT Atme} oH NE aH 出于 =站 Bee BA= TARoe? |; |BR |ihiHEaSitziciciiiiiiiiiiiiJ", "filename": "扫描全能王 2026-02-24 14.47_page_099.jpg"}, {"page": 130, "text": "7 Hi lassg.  XHLBFAE—BaRS Al NSpo HRRRAH ELEN RLSRO’ Ft -FaRtAE AA eM] ESSFh NALAKMA SA WW eB SRSa FT HFT WET Bs Peiee=mA]alAK> =:5| Ai", "filename": "扫描全能王 2026-02-24 14.47_page_100.jpg"}, {"page": 131, "text": "FRRAL BOA EREKNB BARAE] Ath ESEKEENFAD BLNSI cae ESFAMALAKAUDEW AX=S|— BH AAAEAT ECM KMRB+EMISA KATHE MRA+caDAiHea |iH; |‘it", "filename": "扫描全能王 2026-02-24 14.47_page_101.jpg"}, {"page": 132, "text": "FH KB ras和 gs aWY y tk Wha~ = 54 | hes) aba boat H+ AF HF Pala==", "filename": "扫描全能王 2026-02-24 14.47_page_102.jpg"}, {"page": 133, "text": "一。 So |_|HRE , Hee 。 AD于 十 > 类 ROAF MR Lelata It A At +HS| 世上 PK =mel+T— ta Hxmepeek By || 站 全= A= ie Ft |% EYE se HRHiBeasitzi+vittesa ree nee See", "filename": "扫描全能王 2026-02-24 14.47_page_103.jpg"}, {"page": 134, "text": "he © FO FREER — uNrm =A +E BR ESKes Mk — 8 if B] ERReae a Oe vet A toe 8 Bt |] SoSta #+ je — iW PRSNEB =F wR + 当下 2geek BH  neeex ey nel OSi — F Roe-TF RALee PB WA AS ye AyLAF ‘FA 5G YE #)— FERK ARuA iBG |YS|砚", "filename": "扫描全能王 2026-02-24 14.47_page_104.jpg"}, {"page": 135, "text": "Oh CELLZMERSRMAE FMA-AAF—-H-ERB+= BEDE GNA EA |= BeAAK-AREROF LEAne ses Cee wees |SiR SHACAEEWA MAXSIPeAAKETREKET ATER Bal~|HARFRAA-BOFER-—BRAEL= Tt AAS HEREK—-HERAROETRUEPRERFRKRAAGFHRERER[全二 H+ie EH nt A二 : +Hiiasittz下Nvit", "filename": "扫描全能王 2026-02-24 14.47_page_105.jpg"}, {"page": 136, "text": "ZS~=ZERRECEARWADAR ~“BAW AAR KEE OE EK BH amALI EPA BAR—F =AFRF OMB BB aeKABK-AFRERMR ACSSROERBREAK iEet BFFWASAS Me IBBEGrs71S", "filename": "扫描全能王 2026-02-24 14.47_page_106.jpg"}, {"page": 137, "text": "EQ |用i- LR- RRA BAW A Bl5 HEREKRS IE FL= FEAFKRSS B— FY]= HANAERRERB AHPTREPH AM BDcase |||tt iRJu |‘ |", "filename": "扫描全能王 2026-02-24 14.47_page_107.jpg"}, {"page": 138, "text": "星人JALBARRTROFSRKE © oafFREMM ARMA RM) ESHO Bi HEE ooh te a ~ S| Ae] ERADAEN BH + R— ie KH ZREL Ha aSRKEKRHNEFERAZ—UK, | RSABKMA MAH HAH BH) | AS-HKETLRBMMACEE 一A de NN — SR a OS “=AFRKSAEAEM BT EDK <|ASA RH AEA ERHEGABFAATK YK -SH-REMARAXHERLEER MZ oe HG) 5RAF RM — Hw | TeZrth#MATRA) AY+H=F a— i BHEt em a ||=:5", "filename": "扫描全能王 2026-02-24 14.47_page_108.jpg"}, {"page": 139, "text": "这tikPAF © BHAAKENT—-#EE| 5 AM ROR RBEREM FTAls BP-BRPEEFKOAu ae ye AE He A A aee HACFRBAERASSS RT AXE> By KO+HFF Beescas yw i Ae| Fi He 6 Bu| Jax+ 7 Bp#-ea |iHeIN‘ttR£。 PG六", "filename": "扫描全能王 2026-02-24 14.47_page_109.jpg"}, {"page": 140, "text": "| |||| oe[A 3B Hew AA HK ST — FAYHAN BLETERALSM AEA BRISMAB HKFOR-HRBEMALHEO— RB) ENBee Je A A Rt | Se| MM AEX RAF 2B Ae SEY RySM TRF FOR ARES SAP —PieBLA aeeplets Hawn! Ce®A REREAD FAAAKEAAL] —HFEF EH ASAR ERS SH A OYBWA CA-EO REF E-sZBR+eTA— 4BH+].B — || nt ACa.ae5g| 3/|| 人 | _O一", "filename": "扫描全能王 2026-02-24 14.47_page_110.jpg"}, {"page": 141, "text": "ROMAMAF ©FE] Bat a到 于 = 小AW AH EAE FeEnZEW ANA HA=AAe Lal下 全 上 和 人 -下 一> |RERAR-F 下 对 IE 于4 if RH 4 A Ae HERA SHS— [RARE AtE RUNFRRK| LAW|] | FFSEK BRyg) BASTTgl «ALAS Se |+250 |i |aS |ttt |BR 一|:>", "filename": "扫描全能王 2026-02-24 14.47_page_111.jpg"}, {"page": 142, "text": "基于ARR RRReK EEE wi BPS# R= 5-ehe-F—-W-tw wo]ER ARREFSK-A HAART | SoEM ENFOSKEFERF ZS ayHSE ESTERS tA FP esBLSEKA ZAKS HA EeHARALHERREAER) —#Z2M ARI MAB +] —CHORDS EAANS|| e0", "filename": "扫描全能王 2026-02-24 14.47_page_112.jpg"}, {"page": 143, "text": "45 KM RKLWEREREA LAS |A) RMF TH RMT HE DRMGl xe#ex-nenezmae—x 7%]HRM RMT ATH KW A a peelPEER AI AKH AS SYHeSERAEALKEE— BR |Z| S+iFeaRna nana BAL=| MASAREH-#ETEAT Se MY)| 一 Benen eALenA—as ie]Ait BSREREM EE |fiukAitR |+eH", "filename": "扫描全能王 2026-02-24 14.47_page_113.jpg"}, {"page": 144, "text": "oeBANKER AAAS aHET RAW EME TS We FSFU R-#B-A-B BSHA CM HH Le Be |e‘NEF LM BAET 一 或BA-FERAFRAYH ALAS!) 于HAARLEM BER M ETI BH) EZ+ACFF-FLER MOB 4AM MBAS AF ADA FALE Ay =HESERK-OAEKMFRAF交流 二HRSA K hRDae ae ld5 rN J Rinesa.", "filename": "扫描全能王 2026-02-24 14.47_page_114.jpg"}, {"page": 145, "text": "a六cxa RAN CowW ALA Be人 =下 BE ONE On RANE -可 ZA CAM RAN Ae Be| FUT RRS R OE HIIgheeka Ro FF BeMl AAAS FSfi + GFWhUSittRR |+ -本", "filename": "扫描全能王 2026-02-24 14.47_page_115.jpg"}, {"page": 146, "text": "rae> am=WA AA AUIS R— BB 2He RET RR KM BLE BAY= HI MF—R-BMBAT AT F PeHESERHELE KM AAS BeyRSX FEABAFLHS AF ilHee =kNy bp- + 761 bl|:", "filename": "扫描全能王 2026-02-24 14.47_page_116.jpg"}, {"page": 147, "text": "7) nrp REBATHEHASAS ©站 Ent A= AkURt ER WNK AE RERRO Sw= FAR-EAWA MAA Seas = AWREZBRRER FSit AARAMEAFRMALAS=) WARREASAWET ERK BAL| —Ho-mFoenwemoT—F 一i HeSER AR BRA Be| H+ FEPEREKRNAFeesBe mA RA SB3 + BE 5G A车asttCR“+Rpgqeee ee ees", "filename": "扫描全能王 2026-02-24 14.47_page_117.jpg"}, {"page": 148, "text": "me |aedpeEEFERKEZEMR HADES PeeZERRAX- MERA BAER BY | teH+IRRRLEKW RANE FT poresPOSER TAF LEM ALAS I ——MA FA A HA Me 2 HA IIix;5|S ———— | ,| | ||\\一", "filename": "扫描全能王 2026-02-24 14.47_page_118.jpg"}, {"page": 149, "text": "; EANABBPRABAS |Gb FARAEREDE RA DL]q& =——-R-#ARN BORa HA ERER RARE BA]ae URRAFBRE+TOF |RONDA HA=Aw |a mE oe BH aes BH= ARF Le F |下 PO SE AL Yelp Haw BA]Ht ZEF ||iiitt济++impila", "filename": "扫描全能王 2026-02-24 14.47_page_119.jpg"}, {"page": 150, "text": "oe aF UlARLAKBHALTOBMACAeTGA EW AAA HB Ht eG =-R—-HLEPER BR B-T OR lefPARSSFOR- ERMA LE Pel SoBAEFK-HHREMAKDAEFB#REBHRSZHFRERRHRLFAKS REALE AK BA asEARAWAHRHA BAL FT =| FARK MARSH ewe IR =RAN-#RRKKLE-BERE-FREBHHEAZ * ipwh Let ge= Bs BireceNS==g4", "filename": "扫描全能王 2026-02-24 14.47_page_120.jpg"}, {"page": 151, "text": "本Ie ADAH R WE Te IIBHNeS LEO Toe tote bleMAR AF-RHRERAAELER XK(EM AEE MSREBANERKKSae HHLNFOKRRRM AAS HR+iiKiHeAsittR+BSit", "filename": "扫描全能王 2026-02-24 14.47_page_121.jpg"}, {"page": 152, "text": "ie |ILIIEGEEEEEKK KISaes a oe crepes beer a: mre &&PANEER -ARRERR ORK MPSwASALBROEFREFTE-F =BORTKENARALWH RAS P| SoeWIL H-#KEFEEBRKECEF nilSRA CTH AOREKAA- HERRMA KDAR- HAE A RAEK BAYSHPKDM-KEBMBZARAtCTT =RAW ROM AA Be =rit — DO Jes 9% ay Ba Be SE Wh HR AE 5HeSERSHo-FAK fpit A BAT+ Bests Se |B=HOBBaS\\ _ Wa=:5", "filename": "扫描全能王 2026-02-24 14.47_page_122.jpg"}, {"page": 153, "text": "|RIE CROBKBEAEAEZROSAE| + RE Mee AT REACT RRABlana7’ seo Fee ANALEHAE Te HS Wat A WA ay FH HE WR oe BeR= es, eemh CEES Fo F—Mer]a tek Bf =H ee Mal= [HAS Se + Fk. Fi BF ZR Ba — JL A eh中洲 让。 2A RCS i=H# BESETF 个 上 项 HIE — F sh ke 项wr 3G Jy天 mt — soe TABeaNittKR+ ||", "filename": "扫描全能王 2026-02-24 14.47_page_123.jpg"}, {"page": 154, "text": "EXGN A AKRRERRL LSA 从上 下,S-EREE-—ELHE ih S Hs ch ye EH(te te Os 4 cee et Sine—B—BFAKE KY MSE WG MS WG ee —| SaAFANFARAWA ERE RH ¥BA GAM Ma BE ob pl 4ET CERBMA RAs Ry —W FEN-HKFENEWLZRE A! —RASRESRRBCH-REzB全BLIEYat| | #NS|' >!=4", "filename": "扫描全能王 2026-02-24 14.47_page_124.jpg"}, {"page": 155, "text": "一AIAF VREVTBAERie +E xm YM Bakke ANRl ix—R > VRHEH A =z= BAS PD KXHBHFR=Bae RUF FHMSS B+yya uae Yh |人 [六 中兴AtAT HeBwKB |iUSttR+=PAvig", "filename": "扫描全能王 2026-02-24 14.47_page_125.jpg"}, {"page": 156, "text": "|GEGWART THAR EES &+R FSRNETHRLB wo e+= fo aR RE Ak = a EA — Ly]Ad BO SKE REAM KOBERe AS AE” 9 A ee aWo RWA RASS =PH-EAMLEREAL CeO#FF—-A-RwUuF] —tHO-H#AEBRY —HSE CNSR| AsSe", "filename": "扫描全能王 2026-02-24 14.47_page_126.jpg"}, {"page": 157, "text": "济州  <RRPATATR? BE]ZE| Wa | BEAT“ AKA HRCow ee MMT AEA MI It wyweit) ER TE—RES RBa) $38 WW Hk AE BH aE| StoS |#k Hi |TA7BfiiIsittFA=Phuw", "filename": "扫描全能王 2026-02-24 14.47_page_127.jpg"}, {"page": 158, "text": "K—-RAEMKAERP LEMS aMHLCPRKEREAN SH TSWRI SARRHE RW 3A RA] ERBet Ae oe a TW eB BO + | Sa| He i) Be — 3 AE db Be BR HE | ee= A — PepawAE |% XO Ay =4 Wt A tc] ——\"#£OTaepes ey |=|:8 wageVs 要 ilbh ca", "filename": "扫描全能王 2026-02-24 14.47_page_128.jpg"}, {"page": 159, "text": "H=azy % eR ANAS+ 48 7G rh We EnROE TERims Wi A R-ZHHA iF BR HL AEpS] HA + # AF~ Cees:= SES BH> [RSF Fr Awaz BA+ 5G He+HittRAN |atwt", "filename": "扫描全能王 2026-02-24 14.47_page_129.jpg"}, {"page": 160, "text": "ViggggggglgllgllgllllJljllillillgGRRE ATK ENCE SR] ON= +H AMA FARA KR BIRHN REOF TE-= #0 OR] PRBREE R—wa+2—- B+ HSSFa a A AL Ae A BM aKPiS| i]一Wi", "filename": "扫描全能王 2026-02-24 14.47_page_130.jpg"}, {"page": 161, "text": "B(EG BE KEF-FPRERA HAEA) F EWAN ELSA REARS ENE MeR|AxFaARBIa HATZ AMARi HGR KM AR RY el EFPS] Ak WAM ET HA RYSRE-XARLEDWAE-BR |3 LtFRRBAETZFARAEK BR2 JA SAMA CARMA RS FTFT He 人 人 人«PLR eae + E-KERT+ ETHSZEL-AHRLESERLE-HSqPESFRABCTKERARAEK PKgl AI AXMARAKURBACTSyp) 0 E oc Et Ws iea] — FORK AZ— SHOREie B- =Aay WAKESttt tRoOFR Sees i下 十 | 让AF$$$ $$$ $$ $$ $_$_—_ —————————————————", "filename": "扫描全能王 2026-02-24 14.47_page_131.jpg"}, {"page": 162, "text": "这 |主人FER 人HA+| EeH+ =| SasceAW HATE WR HamesARGS he | eseMA AA de EYNEM e we] —BBNR- BBE |vA RRMBRRATETATCRHO |AR a eHF—-HREKREM ACH MAES AMLSHEAFARRILTHOEH EST yO |RHO SARK RCRSEM ADAa,=5Ww7 LV | | a oe本 >", "filename": "扫描全能王 2026-02-24 14.47_page_132.jpg"}, {"page": 163, "text": "|& |e~iw,— SMA NARA Be[FESS EREBARALKgfe TRE tT R-RULATETTFA-—HFREAM AAAS BHpl RMA ANCEZRO ERRLi Ce REASAWMeck Se RBTR TK Aslanee yg NeesRPA eee 3| Rheg a 并> |u |", "filename": "扫描全能王 2026-02-24 14.47_page_133.jpg"}, {"page": 164, "text": "人 二 加 本 本| 和BZBA| alCH AAAR BS Fypeepee ye :| 小 可 =Ze HAE I Be —KEW SEF 4heHEBA.mal ke过BY Ae ByHH te a :| Geese :一 XBTB", "filename": "扫描全能王 2026-02-24 14.47_page_134.jpg"}, {"page": 165, "text": "™ ieee ) ms eeeB ie | a eeai Eee区PS] AA Be au Ep -一 由 过 小 = 中yo — ee ER — is 7KDs HELE BH He REXNE— Rl. [x=enry F=ERF—-H RA APR AARS A WAL ART CAF]E+AGA TEER HA AltE— KH4 BRAK BR es小 十 中州AAS BaWN RE :rN Hee ee Bei] hE — FFR MARAT Bytt BEE W二iH", "filename": "扫描全能王 2026-02-24 14.47_page_135.jpg"}, {"page": 166, "text": "于HSE ROARAF SHES 2 ISPHASE HESB HOA Et A RK) EREM AKAM OSPR AEF A Bo | Sesae a cA MC a: SHEE Y SPBPe—eiem|IAL A Du Ae 22 MeHETPAF SB] —FREAKFfh POL RENAL ARUHx BR es tae et Lhlz THOWFHRA-MHATI? 2 ASSEM AEA ES PIBa H+OFERANF ERWir.ke AsEa==;a _!", "filename": "扫描全能王 2026-02-24 14.47_page_136.jpg"}, {"page": 167, "text": "Pn aE&i=iSIAAACA MAA — I3 E+E ERMA HAFH RRARANS‘ =HEAEZAM A AKRARFRUBTEE: M% — HW =BxoRnN ee a H af &itt hae = — Fz H-AA A= aHAW +5ee 4 |zr三pig", "filename": "扫描全能王 2026-02-24 14.47_page_137.jpg"}, {"page": 168, "text": "[eee| aaPSO PELE R ER HSPE FRRENF KM Ee ARMARA ACABSFCATT |,KOZ HBADT ABM AAAS BR YPK-ROIKATN- BHT A —sett>a |g5Se a ba", "filename": "扫描全能王 2026-02-24 14.47_page_138.jpg"}, {"page": 169, "text": "\\ aAE== |fad |PAF a HSE |= |EAtAMR+ ZK By |a FitTHAKEB-F |=HA-FEH EAE |ARE AM KOA Fme Bh th & OER(afk hE HAAER GR tarear +ATF H af Awl? K -#Ae IK BS6IF王国 HEI nt AveyAle |Ffa |fe (a8 |A+ttwW", "filename": "扫描全能王 2026-02-24 14.47_page_139.jpg"}, {"page": 170, "text": "2Z /9 |=:eSKHOWSHERERAAR—-HWHESEXAOAFAA AEEBIO FEM AAAEERAAFHRW A-AKE+ ARB AM ACAP-A| PERAFOF-LERTER6H = ikHER ALpa FABAA AHAsSa==2ef!", "filename": "扫描全能王 2026-02-24 14.47_page_140.jpg"}, {"page": 171, "text": "FE2aA ART ECT ORCS PEZo |+F—-MERA-AZBHELER FAa [ORE ESE RRM RAAF ST 一—TH+ARFKE TR MERA AAS ebB-AAB-LAFAEZETRAMBE 2Saa ge了 zBfi meeettt |FAal+Wwpil", "filename": "扫描全能王 2026-02-24 14.47_page_141.jpg"}, {"page": 172, "text": ") |ee|||| | 怖大=~EXWECFZRLE-EE eeFAR AO AKM HF ALE ob BH reSKERERABAZLAFTFT aE-FOLE-RMAMAAAZ fill =-B@—-AFRETE CRA+ EH AAT-KX PHHAAEFREF th JE ifBT I 2S ae本=机| | | | |", "filename": "扫描全能王 2026-02-24 14.47_page_142.jpg"}, {"page": 173, "text": "HE Te KILL LAS于 lal 潮 出 和R]—-HaAERK=E-#加 一 全 吓人 YPSPENAAAESA DTua FREED AH- FY H #2S/tZ—-WARARAEK A BES= PAW ERO RECEF mY Dgfom tt zee A mAs Be + AyWA RA Be EH pg ifHAT ATT — ike |q{SAASKHHAAES PR |型 +AREEREATF |yy CF BMAMALAS BH |ff HAE Ae AEUe只 -KE |B |oe5 id二R", "filename": "扫描全能王 2026-02-24 14.47_page_143.jpg"}, {"page": 174, "text": "| 人 |ee ae We 8 x 上FRAFZRtERHM = eHB—PEQHAL ARHER—-H Fal 3h Fea | ES下FO  — fh FA F i aRTNFRREANS cad aNRIA AW WN ANZ BH —7| ®&HA OER NE MET a-| ~ETB-SeS + Re fey 说 西 一 |小 [二 着 上座 游 了 源 让 上l 源 1 掌 奸Hee k ipeer :i =4 BFEReee,", "filename": "扫描全能王 2026-02-24 14.47_page_144.jpg"}, {"page": 175, "text": "|EMEN ARF ®— Ewe B aE TN 4:hl eee oe iFHWA RAE =SALKBtF5 HAARE BES AR和 站 地 人 加 wm FalE 上 加 HARA和 [由 六 本 tt BE 7 ikam AF Kt = oFit' |+e 5Aa", "filename": "扫描全能王 2026-02-24 14.47_page_145.jpg"}, {"page": 176, "text": "r 到jV—#KWAWA? ” kEWE aRALEsemetm Me =F rRP ESoF HAD # —H at ESPeery babies ¥ HSBEREMEREF ae mt ayHeres ager.REBELS BA wxEST FT =| HiIAS —HEREmr F:", "filename": "扫描全能王 2026-02-24 14.47_page_146.jpg"}, {"page": 177, "text": "7 >水hEBAA FARE TReAWSEW FZRASE RRM RFKMS AAKURtR—-H HS —FEee Rw AB it 2BERET ROF nA SWSwey AKRHLE— FES [TARR AT AS BF> |-ReRAECTFLEZ ER ALCAS FE4 FMBE ERKWAAR= RKé HweetF>adALvy ||", "filename": "扫描全能王 2026-02-24 14.47_page_147.jpg"}, {"page": 178, "text": "Fe ee REes _ aman F-.Sf 3 +H Ree K— BH] TSARM tRIARKo MK FAS— He Pd 38 Se KE wt | IEje MN HIF MMA a EHD下 tg 2S ae ik oe =F Oy¥ M es eeze BH a | ASje 全 |‘A rae:rae ora:ER nS上 水 iE HR 7 3h Pigsfags reshk $F H bstx a+ 2Fa,~~a|-", "filename": "扫描全能王 2026-02-24 14.47_page_148.jpg"}, {"page": 179, "text": "d KFRETERREM ARAM A BlKKKGOB-#KEWARALE + HYQe ken eA FoX-HARB AYS| EMT NF K-B ERE oR RTMBIT RK EN A-AKEAREFZRATa ARK—-#SEZEFRRRRD AG]PACT A+—-FKF-B-BXBA BAL> PPOBAIOALRAEAERRD TAL~ [FSET ERSAF RAM A AE~FRHFIRKMA SAAR T HlH 4eA‘ 一T AR只F|-—rit |", "filename": "扫描全能王 2026-02-24 14.47_page_149.jpg"}, {"page": 180, "text": "1 ee a |HP Spe Ret ZRAAM ASA &&— FL-FREGAA—-BHET SaMAXABPUBEREEROIKZ-| SES+REESWEANF HBA FAI SSAIRE A BARRE ASSHeESen aen+-Fat| €BAABRASH] =+ REF A] —ERO WAa.| ~=eR eee ee Ww", "filename": "扫描全能王 2026-02-24 14.47_page_150.jpg"}, {"page": 181, "text": "bP —KREWEBAT ZORA EASEA) AWRBAMADACER TERSRS] te -BKETERB OD AZ—w |ga) \\FAESF EL RR Be fhPSP AFK-HEALFHRARE 一1 CCS |Px tecz BALwm aA WiW+ HF+CGifiitRvih+i |", "filename": "扫描全能王 2026-02-24 14.47_page_151.jpg"}, {"page": 182, "text": "SRWHERLEREA-FRLERER &BW een FHR BAAS RSPBRM A-ALHHED—-AAXH | EESME+E RRS UA aE S| SeSM k-ARS BH B-= S| SeLS3=2#", "filename": "扫描全能王 2026-02-24 14.47_page_152.jpg"}, {"page": 183, "text": "一 TsREDASHRT TROBEE hE EHR BM A wm Be人 RKSRAHATEOF EK及 R-PFREWB= POA AB了 Ok Bw SEF 5 HRA GBEEF RRA ERB本 F-H-MSFOAB GE BH= = HEARS HAE RKi WAL Ce BRACES HeBe RY A — eX EBKREABR HARERates he MA EAK BR= aT TF TN 人 让+a # PE +%~—* BAp HAE A HAF AUeaStt |zzwt", "filename": "扫描全能王 2026-02-24 14.47_page_153.jpg"}, {"page": 184, "text": "lf |-______—|@> ane=e的 大7 |KEFIRENETERER Poop-FEERTRREAE—UE BA =—AX-RNH ARE —HRELERA DALAT A Ye ene| SHAAFZEMAI AF[EWI RRAELERWHA CARHESERCAFANR HERZ DR£U—-FRRASARKANT OF[tA ARA MKS HM Be |BOE CREXE-BEPRNAFHROREHERA Kaera>Anas HS=eo |a ee", "filename": "扫描全能王 2026-02-24 14.47_page_154.jpg"}, {"page": 185, "text": "P| AK—-HEERWEN ABLE |He) WAR HRB NTKSPR RAW A AE YOAd Lee ee ee |Pe| 28ST + HOAKMA NBR |=FHEE-#H ER OAU |THFAER HRS BY |E HEAAFZLHAR—-FeA He Ak BH AE fae AHKEMCHAW HAFRH ALARR=—Z—HR3) SAZHWURABAEK PR -F+H-WHBF TNE F“HFREZRM HERS OSgl SHAAFRRETERRey B = NIBHAY BK De Heea[naae EtreAIA =A TAHAeee +otu> |x -", "filename": "扫描全能王 2026-02-24 14.47_page_155.jpg"}, {"page": 186, "text": "-HXRE \" BARI KEM EM B=]BtRS Hn ee pe ae RR TEHALA’ WHASFRH RY EKE| BERien WASAAS aM EE raa#ou- Ht RGKLEMHER BK =ALA Fs)mK BA ‘iLaF =HHA jee ]可 十 > 中[ROWeee ER| t+ Z 20%| Blasretwe", "filename": "扫描全能王 2026-02-24 14.47_page_156.jpg"}, {"page": 187, "text": "BREEN A SAL BI]WKEEETECE Bl中间BERE-HF LARSREMBAAFSHOCFMNWHOKRKATAFEEHBKEOKRAHFFSE=E-NABABHFSPELBA-FAF ARCHESB=-FTHA-ABRBAR-BHNMARAKMEHHFEESRLEDS三HB 一i", "filename": "扫描全能王 2026-02-24 14.47_page_157.jpg"}, {"page": 188, "text": "1WF SRM ARLE  WAtAe 7 |HARE AMF M MTom MPRGRAUMERAL” Nk we TB(Be oe REG RR BEA |Bu AE ae ik Ro REF PR7G Bw wt A SE aB—RMRE +E GK BA 了HALME— R-F =HAFZ WAH AE HA “|ARBKPYLAF|) 3% fb EXet EE eK PRSJEZRAF NL A-F ly|FRREUWAF AA OTAG GK RS NFasee", "filename": "扫描全能王 2026-02-24 14.47_page_158.jpg"}, {"page": 189, "text": "上 AOAFUBOHEHKTHRHASADRAWECO AeHREeRERBKBBL用 —P-RRA RMA A Ane H 4¢ LBW EAB ATSER AR OAFASCRBOOB-SKEtTS | RRB ARALFHHAEAENMF— [SRARPH CREMP LHC AF KA| FREW-A-MFRREAAAKAF| PRR BEER oe=ix十 出 |这 tAfi Bt AHenNit |F |+cin|", "filename": "扫描全能王 2026-02-24 14.47_page_159.jpg"}, {"page": 190, "text": "Ju\\|z— =v3 HAA aak Bi tenk gy 是ae CI erREmeears iaae |", "filename": "扫描全能王 2026-02-24 14.47_page_160.jpg"}, {"page": 191, "text": "到 ae ee aeMAA AK lt AR1 IVE 56 ae) Bl天 F--KEH Al用 =AF ERB +ine BREAFZ w+]外 ABLRRAELELRH AS& TES ESROLER EB Te人 eR FEA — A DA Jt BelT HA SAKEMEREH AWRLNFNK- SE eHA‘ +z5 B®x yOi Aitt类到 |=a", "filename": "扫描全能王 2026-02-24 14.47_page_161.jpg"}, {"page": 192, "text": "| ee ee Te Te 2 ee 人 3yeEaBiRRELTFKAAN ALARWMA ARR BRT eK BA] 4REE RRS REEF =ULF OR-MEPRA HAE Il| =H#ERESRBRTAF ASae Botape Bee tee & fe lepits cee ei|| =", "filename": "扫描全能王 2026-02-24 14.47_page_162.jpg"}, {"page": 193, "text": "| XS =F EM A-AKRIB—OK ” OEE|MARAKEMERRRHALEK MeGS] 82%-F+2-KRW NEFF<ROAMADALL AG AAS HE |BE SAG AEA TREK 王ae xeRF—T-SWSAR FeT/eRAS- HEALED RAE K BAYPKR WEN NERMRAN ES~ {SBMS RM ARAXTHA BAe BAFRAIMKADLREMRO ERE加 中 本年 海潮 |W 二 MMHM 帮Seek Bey2 A+SFi ||itRe |+ 3t: aS", "filename": "扫描全能王 2026-02-24 14.47_page_163.jpg"}, {"page": 194, "text": "-B, *a — ie WA SEN A—APyeres: HEF EDR T|HAF | NKRENAH]ANAS I HAE IG ah HAE A]而 H+ WF AN|H FI AGJee eek Be35 和站ae.=", "filename": "扫描全能王 2026-02-24 14.47_page_164.jpg"}, {"page": 195, "text": "2人 = oeps= beat |==|\" A |~ FRLOFKREA=REBW: * BW it HOA FBS 5b ww+ HETA-HEA-RBEK+ HG LRORBAFLERA时 HESEERETNE RR: i i| usefeA, .E |", "filename": "扫描全能王 2026-02-24 14.47_page_165.jpg"}, {"page": 196, "text": "LEED iy) : ,(Sime @ e ee | 和公元 一 九 六 详 生 于 公元六 年 两 午 冬 一 一 九 九 二 年月 廿 五 日 申 王 申 二 月 十EMMEKSA Noes| DHRKRHK BE HH公元 一 九 六七 年 丁丁 上 七| 月 十 五 日 子时 生子 一 伟eK 1 8AHR HK BK J汉 三 三ra 兴工 | wR | EHth BOS Hb RK Mb HE RK th Oh公元 一 九 六 (公元 一 九 九 字 生 于 公元九 年 已 本 七 六 年 两 子 正 一 二 零 二 零 雇mre mK (retook hearse", "filename": "扫描全能王 2026-02-24 14.47_page_166.jpg"}, {"page": 197, "text": "| ]Elz oy HG Au RE te F RABe fe uF 2 WY A WAN BB OBGla MA SAKSSERERE| = ten—-FtR—- EelP| * SRW HAE#t FH ERE KDx | * BH WLS THB= [+ it AD~ 72 gh 2 + 3 76 He+ FO B= Mm trx Tu Hh = WE i41 ® Bp Hee ek Ep H| tee¢ -天 i paie RRikasittR二qu|", "filename": "扫描全能王 2026-02-24 14.47_page_167.jpg"}, {"page": 198, "text": "al ZZ RN OLY ))(Sane a 公 EE公元 一 九 七 公元 一 九 九 发生 于 公元三 年 奖 惜 正 元 年 丁 屠 年 三 零 二 一 辛月 甘 六 日 未 十 月 初 六 日 开 年 七 月 革BRASH ALMARKR 六 日 本 时里 张 家 长 孙 周 茂 繁 村 张女 红 华 生 于 叉 茂 幼女 张公元 一 九 七 材 生 于 公元六 两 发 年 十 一 一 九 九 七 丁月 初 四 日 实 _ 导 年 十 月 十时 生子 一 武 一 日 卯 时 生HK eH [ee于 公元 一 九RANWH九 月 初 四 申时", "filename": "扫描全能王 2026-02-24 14.47_page_168.jpg"}, {"page": 199, "text": "fLY FRERERAR-EUBAKAZ %FE|— ARMA ERE HT MwPola eceKeEt+oaFXrEAF—#BaP E-BRFSWABAU EE Le BeSSN AEM AEELSRN ASSAW RERMHRLEKARHZS WR ENFARAAATERA TC By— | HA=ASESHA-ARB ERS— | ka eeee eT ERE Re ee| F=R_-GSHEL—-WR—o WE«(ER BAT EMER SRERE(yf EAERHRSO- SRAM 大SR RALEABRABAEERM SSGIES —ABHS HANFALA AS flgl TERE EW LA AVe [FIa Hee Besy FNIFF1 HABA S Hhtt BE 5G=pig", "filename": "扫描全能王 2026-02-24 14.47_page_169.jpg"}, {"page": 200, "text": "HIE — FH Ff SBA a 人A SARE-FW BIO+ Be oe At A — At Me | AERO KDEREMAH 4 SE WO ATEWS DR atoom A RK Be ‘FRO BASF P=RB A waz i:we BE Hh eeWGA ER eeeEX SEH BK BR BE-FHEFEA DO NF BA AYAKT AAAS BG + T |?7G ey BE th eG ME po a = HiBY ALAS Ba+Fonk& 4ea ee: 5Heese| REFey:", "filename": "扫描全能王 2026-02-24 14.47_page_170.jpg"}, {"page": 201, "text": "ea aie aurora一 |SE=Sy WH3-=S4-=nTax see ll HRM ERAa> KEWELoO-BBH+EX7 SFMAREERALFMEA FARE HE| QI 沙洲 Ht Rss F OR(4) BAe FR AFIRSA EHELAS F H#SEX B+$b AAT 温 FESFHEMARXaf tt AF 70 MANA AAWarN eek a三 MI 让RIA SAS+ EFAOpal", "filename": "扫描全能王 2026-02-24 14.47_page_171.jpg"}, {"page": 202, "text": "2Sei |=HRA-AEAE+RCHRB AtH*¥CRF=F+—-BBwAAW-RRAFREBBST.HEBER AAAS KRYFE-FRHA SABREsimavsiy==| =| os0", "filename": "扫描全能王 2026-02-24 14.47_page_172.jpg"}, {"page": 203, "text": "Seana vee eene=en] TAF REDE DRONASe A-A—Foe-HERHRAES BHSo [+ FRE —BAAEREFACTT—¥— RR RTEFAAA RAS PKHARAAAM AAW ER| [RA SAGER GRR ASAK4) TRRRFAB-RHET EZ FR]‘pl HTFIMBAELEKHCR-Fpl FFPEERIAFED HAAS FEgl RELFAMASAWHRAOAFWe — PER只 Heeek; HAMAS YeR tA AS: meme SFAg |it SS|", "filename": "扫描全能王 2026-02-24 14.47_page_173.jpg"}, {"page": 204, "text": "ceaFEWRER_-R—AH Fi PonHAEREM HERES BH Ow wa]E+ BME EF ms) —~|FERASTHASAS AE BH]JLB RE FRET ERE zoBE WADA| Ao DR MEK Bp之 好 HF Ae 和| ee pone oeca.[LE eee ee BA", "filename": "扫描全能王 2026-02-24 14.47_page_174.jpg"}, {"page": 205, "text": "penn ft: See 5=eBE | =< fa加本a EF: Ey== |e *a7 [eKiiBEE =WoRHAAFZEMA LE(4/K TE | BRPENAAAKHETEligl = NSF ET RAR RATE & fF WASAKSH- RAMA Hale +EEMAEREERRREEANtt Zz| alsAEBe加 |0i|", "filename": "扫描全能王 2026-02-24 14.47_page_175.jpg"}, {"page": 206, "text": "/| |Wo AREA we ONWEG FE BE XFe 3K —- 24 1 BE 2 HF | ENNHe AUB 7 BE YD aNR-BANNFRATATEH ROR TENeu AEE LAM AK AR A LE ®FRFRBCHELMSRAUEEKE] WSA-AKXKB-SB@K=R_EOM AALSHEGHAELELAHREERTERWo RW -RAKBAERLEHSE A BRPEBAAFFO-FRPALAARAAALWA -Adx—-#ee- eo wh- PERFATESFKFAB-a= =CeereKAR| H 4a|52#", "filename": "扫描全能王 2026-02-24 14.47_page_176.jpg"}, {"page": 207, "text": "|KRca办ega Ge ee cee =SIRF RAFARINAF ALK BH Bl,a: [LMA RAMS KRAATT Pa| [EEMZRRMHMAARS Be 于| [XF-B-RFEETEREKR — Ye we. HEREK BR |ig PET Flb AAS OTr DARLveUNtt®AOygioa", "filename": "扫描全能王 2026-02-24 14.47_page_177.jpg"}, {"page": 208, "text": "ABT HRB RE Teh]AFI KRABAES BH ARB aSKARSWB AATF Hes Ey|KRRAB AAAS PE WAFL|F-SERRDETD nA LAK WA OAR| ah aR BETK PRad Bee SD= EFa.| 2| 3if", "filename": "扫描全能王 2026-02-24 14.47_page_178.jpg"}, {"page": 209, "text": "eeABE eeer OE 70 4) BE},a ee ae nt A; H 4 Au Ay 十BRALF 一| [AEH =F—-SHRENEA| 4) t Zack BR He ee BY 9 4e_- 当 加 MIM Ht+AFKERtZS-||p) Ree Be AAA RHA RA| gf HE HARRER AA| 3| a再- 济区A: |aanoil", "filename": "扫描全能王 2026-02-24 14.47_page_179.jpg"}, {"page": 210, "text": "eas=VR LKB H EEA y% Hy HELERRA CE RB t让 RPUFERAKAKAL xOe ANAKED RCRA —i +REBFRR-BEK| Ht-FEATRXUAREE|k BR AEAKET-HRUREFS HZRBA EAA HRS上 二 洲 = 副 当时 兰州 闪 半 站 注 5|F HESSEN ACARAM WD-_— .=Ww", "filename": "扫描全能王 2026-02-24 14.47_page_180.jpg"}, {"page": 211, "text": "KM AEE A RALKA AXA; AWBLEFKEVERRUNEMETRHA LA-FOLZ—-RYB+E-= HEMACCHKRAKAZEWARHwe WREK-BRAZLERFRRMAAE—~ HeSENRRTtFRS=2—-aA: KFSPPEMAAA BU OAL,MAtLASHKEDRUAERALSHT C&-FOF-BAM AEANZFOIVPM-HFAEWRHAHEns; —%£ at Aei =fe + 4biaN| TEAiOtipee ee", "filename": "扫描全能王 2026-02-24 14.47_page_181.jpg"}, {"page": 212, "text": "SE eee ]tN| “AYas| FNF—-SBRAB-AR Poms-HEALABRE LER BA)KHANF 2H BASF =| HRA ARH AS Bey| zt How Wi = 7BY a At Bt =H=8HK Bp Hee bpBaas i fie & .Hee Py me BhRSF HZF=.| Ali |", "filename": "扫描全能王 2026-02-24 14.47_page_182.jpg"}, {"page": 213, "text": "一 |jie Ce eeAl LA FKERAR-BKARAW FT MWPKA MAREN ARLEKSH ASRa th 50 eT ke BH BE Hhge) A R-BAFARSAUI SRa ASKS pHZ 2 tt BE SUE RRA De BAYi FRRAELKBFECFF: SA+tFRAAMA SAS SElj KF —-BARRREt EGANSELF RES AW—-K¥证 HAGA M RAF LAK PRie +TRBP RAT FWl =H-#MUM AAAS ZRir HEA Ee hE + EKDk.= 之| *aeO+ti |", "filename": "扫描全能王 2026-02-24 14.47_page_183.jpg"}, {"page": 214, "text": "| rea — Swe al42 WH AE A A Stk AY ENBARN KE KA mY ESSit ANA HB] SN| HEY ROR D| PyHERE FAR-BWAC— He PipAXAFER-HDAEW AWA BAL[RA AAAWMAtERE TOFS =[PAREN HSA A RAS Ae) —KE=AIMRS| | Heese fpFERTTALAS BA IPIZ 7 Iivasa:| ee ee, Bc", "filename": "扫描全能王 2026-02-24 14.47_page_184.jpg"}, {"page": 215, "text": "| ns ey<Z—RAWALAEHRA RB KMROIEFRETE-FSIM ARALMA RAS PRgel + eek EEFeS AOR eKA— ER WEE& |e-HASARALK EY 时 二2: |KaRMeRRACTT H 4E BAe7 | BRE-MAARS K+ RF| | Bee we fe + ee Bt — 2| HES ewsFE Bo— FAK fp |FE ASABEi + Bathei SHIRa |Fewm本aiaOAKR |", "filename": "扫描全能王 2026-02-24 14.47_page_185.jpg"}, {"page": 216, "text": "半生ESATA TACT RRE ENE FRRBOF WWHANACE HH AS Ad | EXAMANFBAREARABMSTKE aS(ft ce ke-F-# RMA EE iaFoF — MSW SRA Be i Pome“HEALERS RW DR] ASSattFatsoKae-|iM NAKA| 4 RG Swe DaeH RE H| HIE—F bt Bpna 全| NG Zn| mit — oR|ae.3", "filename": "扫描全能王 2026-02-24 14.47_page_186.jpg"}, {"page": 217, "text": "|\"| oes aa |a RRERELGLSARLE = 证 一UMASKAAAANTEF MF2H See EM ANA B> 3G OWA ope 2 a BB AE TE HS Ingel vk vi tk dt Hk Sw Ht R—oS SAKHWA ELE DR PRBRa ASH BOLE be BR BAZ TEBE ARARAOATa |- REM EM HERAT ZR|| |re2zeecn-AeeeeEERHeSzK fp中 RE-FF下 ASAT Ay| % MELE.:itLE:aeOFuRK", "filename": "扫描全能王 2026-02-24 14.47_page_187.jpg"}, {"page": 218, "text": "pares aa Xaa ees FVREVTAHELERRM A AK] ONWA AKT LAAN AW +E RAPERKS VARMA =SA-£2%+E— =] BAKUHRGFRSRUWT HA A eISSFRMSSRtR-#-REAK FYAla Pymat]AT) s3aim BAeoe:>", "filename": "扫描全能王 2026-02-24 14.47_page_188.jpg"}, {"page": 219, "text": "4\"| emaia Ee a ee Se alAa] HE AS He Be EA E+ — + EeSpies A = EER AAR BRpS[KaKA ERA RANA ee P|BO | RE LT MERA BANA FVS 和 人生3 A-AFULHER AW AA K MeWe TH-L-BMFANFECHIORAFRERNA CAS PeHSER ENT RD EwfiBea2 |i:人 人 从Tebi", "filename": "扫描全能王 2026-02-24 14.47_page_189.jpg"}, {"page": 220, "text": "N[ERRATA ERSRERE 8 i HY ONHERS AF-LAKEW MT EMT SBISMHS ATM LM ta em ENHe Jah ll + E— HEB EAM Ob ET zxBe 3 BC eS AG BE 8'=Zoeee,", "filename": "扫描全能王 2026-02-24 14.47_page_190.jpg"}, {"page": 221, "text": "et oN Le eee Tle ceed|R-FERSER LEME nASeFEE) x ju ce Bh HR AE A EE T — MaRl t+tFxaRERWHR ARES= 2 OR WE Mt EN BalFEDER PLRRERM ALASse FHF fu ae de ie| HRW FeERA +t 2s eeEBT RR+areKiBeuNLEA+", "filename": "扫描全能王 2026-02-24 14.47_page_191.jpg"}, {"page": 222, "text": "fe I A Arona er RE—AREGTARETACHRE E ¥) &[sete Maw- EFM 4 —[ERAR LETRA EEA HBSEH CMP MRE + Rot | we RSSKF—-HEAKAMA Bt =BHACTARM A OR Fs)eM AS ARR BET ie BH aRKEFECKRETR-F =—FER—-BE MAR AA BM 7$—- A ARERKEOXS;EARLARAR A SAKKDC ASAE RK=fRB-RMHRRER-F ‘KH EREC KA Ee 尖 BKMENFARRE ANSHAAB| HERDED :| H| nee", "filename": "扫描全能王 2026-02-24 14.47_page_192.jpg"}, {"page": 223, "text": "a a ni§ BPSRM ALAR AHHg HEBIKTERNRKRERDKY KA eSB HH — A A  &人 BEE—FH FABIH EK RRPx dh it HSA BTN BY BEAS@ eSZ HFAy N= HF4 It Bo AS+EFEW -RMBRPS—TRTERA一 HEA EAM RANA SK六 RN NFER ROCHA ESAKM BY A ANd Md sOlis E+ T CHAAR AESEW AA|| Be_ 中tt|eeaFe", "filename": "扫描全能王 2026-02-24 14.47_page_193.jpg"}, {"page": 224, "text": "- 公eeJEREREA -NNFZRAA— EH :FUFRBASALMRRLEK BA 成AK HH RH FF =[A CGM eoh—-eRRAARS HR |#1) — 30 FE Te a TF 7H到 机于 村 人 人| EAT AR [FH 4 70 ia,| SS", "filename": "扫描全能王 2026-02-24 14.47_page_194.jpg"}, {"page": 225, "text": "a |天 |FOF ARRODCOF WVR/S \\ AR ARORATu FR 70 a8 Jae AE AE oeAB-##Mw BARa SAKKEA SAR F AStet wR TKR KML,g | \\R- HBR F uh 3 BhJH RAERHAELE et| [Witt wean Et ZKEHA RAR& 二 Be |) 4ta-x%62 nm 对/2 KHNFiiw#| ES|AEL", "filename": "扫描全能王 2026-02-24 14.47_page_195.jpg"}, {"page": 226, "text": "eTDEKEtH AF NA[上 起 是 wm 一 忆对 IMI A = 8#\\— RW RM AAR tl-HEARERNRMS KB 2]KRECFERWAA—F xy =ae WE Os SR AE a | 一 |KES RERRAR OF 中to FREER RB tAW[RUC RE HEM AETZ PR| BALDAMBTT-F ;e+ EWS HE Be b| FEPIBERATAFSa -AO- FRa oe Hee Le éFF REO FF asAe fe A Ae BYre 3 O¥ 0BSs", "filename": "扫描全能王 2026-02-24 14.47_page_196.jpg"}, {"page": 227, "text": "|i Be LS th iG + eB]SPARSE FAS RH—>|/tEWMSH-F 关中 之 上NA 3 HH HE WA LF],| [Rak RItF BE xE—BRK |14 RA BE a PR |机 a ie — F| ae ee Ae| H+2FLa i ie oatt =~Rk nt AX| +=A+yg", "filename": "扫描全能王 2026-02-24 14.47_page_197.jpg"}, {"page": 228, "text": "VY ns |HHARBAZ ™ 为ae ae aE ot SA HL Bk BSTo i WY ae IK xXRE + REF maKR i =a FE +P opWA Be thea BR =a4| &WwW WAR-F a) 中48 EH A eB Kat AYEK RLF + 4KERIB it WW At aWt sm AE AiR aK iPKNEWT-F = ea ;KP DRAAS He HES & ZR le@ BEF FREF=F=WeHea De ‘于 :tH eAte=|", "filename": "扫描全能王 2026-02-24 14.47_page_198.jpg"}, {"page": 229, "text": "—7 |Plas Fee RKRRAR EARSAS) RM RV ANARHESH AA AT)ES RAH WM BAKA + EE AM || RK HewKSSBS TA E— weae] VREBAEEK-AREiw Tes WHALER FEOF2 be Hi METRE AM A OA& HE GNA EEK DHE Fh —# HRA-B— HRAFE ranatF ¥ a RoOSFTol ot ) Cae ZN要 4 + BR TGBe :A| aeRl WReeA |ikSik", "filename": "扫描全能王 2026-02-24 14.47_page_199.jpg"}, {"page": 230, "text": "4 VW—$ nnnasHAS RERRTAFZRARAE OY SAFSAFEMAL ALU MEF BpWE byt — Ae ae GE BE38 Ht oc F WE — MB + Ae oe BE SMBSF — HBO Ae BE — BR -或—HF—#KHM AAR oeREAL REM Ee BAL ABEATA BEY — F =EA WARS T ARLE HE —FR CHER AAAT— R= BR KR eB| Ae BK BR Hee A iI) eee RSF F|| BA ea ee A AA Ph YB| + Sone A 76Cae.is |Z=5|", "filename": "扫描全能王 2026-02-24 14.47_page_200.jpg"}, {"page": 231, "text": "jj |~ | +i FF下 FET HARE AH5 mF BUAF PM 和AS] it HAs 证 BiGs B+ 4 Tt rai CES:@ [teak BAARONF人 || eaeeie nag Od 32awoyA |x|", "filename": "扫描全能王 2026-02-24 14.47_page_201.jpg"}, {"page": 232, "text": "eat A wz xiee FSBEF RYADHE-AAF e/aAw ME tN Be| RM A BaMA AFB)FREAK] ==H4#cHI] —| WF iL 18|| — 3c HE at Ab AEJE 2= i wT aK BpAEA 二a A Bpees 中ae.ae=gz", "filename": "扫描全能王 2026-02-24 14.47_page_202.jpg"}, {"page": 233, "text": "” eS下 AEWA RAX EM ALASFE FLEW ERE HR EAKl a—F-—Z2-Kw Bx Ea |HRIOARALE RA RA pe |—-ERRSEFRMATEF |ga) Ett Be oG RW — FE He |FAH — ew EE eB| =HFRERM RACES| RRAAFSRM ANAS| HM A SAK BB + ET| [R=ae A — i 到| pt Ek BR HHekK PR Ajitsig Milei Rt—-F te.AK#iE:ac=ote+", "filename": "扫描全能王 2026-02-24 14.47_page_203.jpg"}, {"page": 234, "text": "RIG A SAW EAHE SEH SBA BL tIFABFAT OAH Mt A x] EHANARA EEE MISTRCH EEO ARRERIAE+TRESS¥—-Z—-RB yFAI — SHR A TR HE BHRAEREKRTMAAPF =FRANFEHERALAS fe —ALAR SAR MEILK i| HEPA Bppe aTHEAAue aleaEie |=机", "filename": "扫描全能王 2026-02-24 14.47_page_204.jpg"}, {"page": 235, "text": "eres eee |a= | Ae ae IT 2S HB 9) AE 7G BaSIF ta+enke SEBAF — R— Wy We Be |CWO ARLERBRODFFH FRERRM LATERSANE NF REMAKE BH |= [AMA SASHMATIT OF[Fate neeee—-bne 温 || [Ake R-BRAHEEOF|tt_&®=ate<", "filename": "扫描全能王 2026-02-24 14.47_page_205.jpg"}, {"page": 236, "text": "下ERK],Mii HE ys过 古语 小 一REA KIS.ZY=RIP[FAW — wt eR RaeMA RERO ERE BH | 1 有 = 一EBENFRATATFT iAMA EAUNA- AS eR to]RE + T CHRO F uw ASnt AS Ae+ Bak BpeeeaaaWw", "filename": "扫描全能王 2026-02-24 14.47_page_206.jpg"}, {"page": 237, "text": "PERE AARSFRE | iu Hs Fe wi BE DE 7G HeRA =AwxHAB-Had eee ee 理BS AR—-REKBAEFAFKLTR-EH AFI2 |ARESRAAAEK AY be eal= |RCKERRTAFTT HAUSFr H—-AWRHASAS IB WANAKAI RB OERE + RSGEcyctt本Au |", "filename": "扫描全能王 2026-02-24 14.47_page_207.jpg"}, {"page": 238, "text": "人 yfre et¥ HESPERUS KE RAW K— AlNUe BAS Te a BL BL LENABS AW eH S SH em] EY| HORT RUL EMR BS ge — el SN| BABI MKBAKS ME MKF| EROBF OST Kit \\ PaHEREMA CAM S| ASBH-FRET CES B| MAL AA-H— BAL| PEGMAZE—H|| as| || ~~| :|", "filename": "扫描全能王 2026-02-24 14.47_page_208.jpg"}, {"page": 239, "text": "医 。 ee |机PRO FAR RR BHA RAS |A) FW BK eH ee OM/ SER REAFAR RID=| wegen AS AWWA LAel PERLE ECRM KARATee ee ees3 £BLe FER FHM LE e BHTLP ae RER AEA ERANHA FAMANF RAMA LAS OY| [RA SAARMAARABE TSE || nese k BR! feFe MAFF |洲 RA OeA ZBoR| itesal出q", "filename": "扫描全能王 2026-02-24 14.47_page_209.jpg"}, {"page": 240, "text": "a3 |证人sR ASA 6 IE ML PENpe eee ys ENFMt—#M WALA Ty [SEN= AFAERAB ENFNI 到 [冲冲 六 = 全 = PoeSpeen RAED BAL AS MBARFAM MATZ 一|\" #uB BAW wRA—as Se] SS| ae 9) 3 30 hak BE AE TEie, SHLeS =a|] HeREk oR HeeEK BRtA A TH=A ‘aOT Ht tie Ot二:Ee a", "filename": "扫描全能王 2026-02-24 14.47_page_210.jpg"}, {"page": 241, "text": "=e?! |PAPZehH=Say 3A= | ce HE Ht oF 7G BeS| Rr w— SHa LESae) Se OKO oF_ py on = Fe —T-&R: Hee BH RDA BR| HIE FF BAF F于 MAAS Pe MA GAS ieDen HE EE上BFRasUe| aL*E )=", "filename": "扫描全能王 2026-02-24 14.47_page_211.jpg"}, {"page": 242, "text": "4 Bee ents ea ge 4=WEAXAFROAPORERRAEE 人| BA A NAKK SIA KAKA TK APESSF S-#eGRFRELERMEMESR EB(|-Ax+R-BE OR Ret FIZSCRACLEARLMWAF AAD AEABl geee et| ~=a", "filename": "扫描全能王 2026-02-24 14.47_page_212.jpg"}, {"page": 243, "text": "| eC oa. |Plat Anas it BAKA)=| we 7G 2 + pe 7 A ApAi e3=2-H FOFORBt+MUA BAS Be A ee A I —PS | He BOAT N+ BF 5h ATFB RKAHR AEK BA |Pet NSFJL AAaS BP| |2Baexemee |=RGZml teesKM Hees Btfe RAST |tt®a+", "filename": "扫描全能王 2026-02-24 14.47_page_213.jpg"}, {"page": 244, "text": "从 0。f| ET TEES.Hm AA ae He oe waRe SAT EA aleLE — APAHOMME MAF和 加 > 上 BAeLEURE-Pmabe BH H=AFRMAR] 220 RF WAXAW BBY >HAR AS = kt Raw HARLe BAF 72M — WHEae.ie |", "filename": "扫描全能王 2026-02-24 14.47_page_214.jpg"}, {"page": 245, "text": "‘Ta|由 AWAKTHIOBKCERELE= bees: |= HPoRkE+-FRER SARS: RE REA AAA A BB oh-一 eens ee ee| BF8 || |iBit| z人| eee ee ee |", "filename": "扫描全能王 2026-02-24 14.47_page_215.jpg"}, {"page": 246, "text": "< 人 |FLEXI TRAXN- LEDS >STEP E-eMMA LE AW MISWA-F-HNEMBHEASSH EELF —ALETHACR ARR pe SsROBVRFACAERAR-ASD Zoe ae, |Hee k BH 4一,MN AONtateaean |", "filename": "扫描全能王 2026-02-24 14.47_page_216.jpg"}, {"page": 247, "text": "ae ia aaa a |本REF=RESETHRE ™ aKRM ARF SAR OF CkGIs££0=An0R HOA ~ Bt ABAFERRE ANAT +W—--HB-RANAR— aSHALE RYE EER2 RLF OAR ALE HK BH |、 HA ALAW ANAT SF: ZOD REA- ABS Ee |FOR-BE+ELMLE| nase e Be |H 证HWSTF |oe AAAS ByiitRReea |: |gq", "filename": "扫描全能王 2026-02-24 14.47_page_217.jpg"}, {"page": 248, "text": "eae, Care ee ce| ale| Aa a¥ Ba GRPSFRHARERREEM AKA PySAE LU R-BAKRET EEK BA]ZRF NEN EWR HSA BF ENUa +A RI Se RY(|ERee ONSFRBAETAFAro eR+eeek fpak fal=BA AI BE 7G weaa.", "filename": "扫描全能王 2026-02-24 14.47_page_218.jpg"}, {"page": 249, "text": "1 |PVKKER TET ROAERLE & |A=| BEE AE AKRA EOF LM |SZ RAF THC BBELAAFH =S—— RRA AE 十elk KARAM SHOSHA FRELHH AAA Helek RSAFRRET EZ BH MAYFEMA SAR MM to— F eaAKEDR RBG ARLE BKKF OX-SHBRACF H| LSet Le upes s:|4] —BlLeRKRBA-—2AK HRgl HESEMREO HET S| RAST EABRABLS FRWe uN eS| He|| tt| ka+", "filename": "扫描全能王 2026-02-24 14.47_page_219.jpg"}, {"page": 250, "text": "Rei: RE ea eee ee een elAEF EW A eH =RIABEI SARAARAMET M ne apa BeDF TERM AXA HF i oyAG—KeEtes fl WAEAZKHARES RSE- WZ 72% 18HALA ai+476 BH pee] ARoot od MNHAA eed- BEEF 0%ae.=", "filename": "扫描全能王 2026-02-24 14.47_page_220.jpg"}, {"page": 251, "text": "人 *yP| #-HGALEMH RHE Me =E|ALRREATMARRAAT Me 2MKPAFKMALAKRMALA KES\\A-AMeneusten BR xFRe) Rue TSR ewes Pm| WTF ROMA SAR3 A A RT Ae GK BH |+RERNSZSR-FAF —eR WAP AE OeHARES HALF上 |OFBii| HeaitES人 人t", "filename": "扫描全能王 2026-02-24 14.47_page_221.jpg"}, {"page": 252, "text": "AWREATT REZ RESZEW A-ARARE | WMH ELA 7 Be fe 5 RAT HR RS WAL,FRALH-AMUA ZL RAILWAY:WHT A HL wa 医生ex", "filename": "扫描全能王 2026-02-24 14.47_page_222.jpg"}, {"page": 253, "text": "| LT | LV‘2 oeeR AAS & REAFEMESyt eesBe At A he WT-#REXBe) RR REAF HER A=Se FeeD PRB Ee BH+ (I2RAS-F'- MHL Bei © Fe + NF- NB= XHi HeBEKa y > -+¥EM| Wews‘etF+6", "filename": "扫描全能王 2026-02-24 14.47_page_223.jpg"}, {"page": 254, "text": "人 ears aes 4ae| ~ AY| 9 BH RA + F PNKALBA AXA ENRACKED ET aNHRM FASTADA® F+REEHX—-AEMEK BY  wALAKM EAA! RQ王八 +TRRECAF]HF A pK 二 MM 一二 二 > 放 HRSA TRIssReaUN 了feet[a:Snes re", "filename": "扫描全能王 2026-02-24 14.47_page_224.jpg"}, {"page": 255, "text": "ail\"| Ss Sa ee加 和 和证 十Sl] x—-*= HW Ju 4Be) IAFne Ais £ RAG Sit| eAez BY FTC eME= 一 这 让 人 ND he= Haas RR A 4B Iu AE Be ttaE HA — NESSST isha EAHSER Bp OB+ HE MF 六AAS ROwe MoweficarNit济N", "filename": "扫描全能王 2026-02-24 14.47_page_225.jpg"}, {"page": 256, "text": "而 \\gu Wee EW AAAARM weMeaetendwwleK Ha H#R-FANF-BUB B‘jer e x Les-HKALKRISF 3 Hu AERA CT ALAREE aSE GK H 4cnre ce| eeeoewe", "filename": "扫描全能王 2026-02-24 14.47_page_226.jpg"}, {"page": 257, "text": "| 3 ee 1 | | | | yy/» EX FH FREMBREE-KEBA-AEl a HARNANFROBRAESRMERSG] a Sch A -AKKFNE FEW HAZ=]— MWC ATECRAM ALARMne] H 4s SBA — we EH etoe Bt5 +a a+iveiBeatttz-_EYju", "filename": "扫描全能王 2026-02-24 14.47_page_227.jpg"}, {"page": 258, "text": "—— is ir3 dGSea Lees Lewes =a piREF —-#—-KRBALAF 至 让-#—HAALBE BANS Efu HEE BRT Fae Mr mt = AB AWF aA AW + malAAR R EK BEE yDOCU H hARLeZ BAtH WOH AATF =HAE Ju Ae Me 3k ah tpRAF 2 REE KE-人=:%", "filename": "扫描全能王 2026-02-24 14.47_page_228.jpg"}, {"page": 259, "text": "| | | | |ye:LAS BRANT ROBT O-Elane KAA SAARGl x—% ZHASKRAA T+ed Pees F AK HB — ie Btme] A + EAH EAE RS +| Aw一 让+ 员外 4= [RAeae”证[22% fpFF= 3Oe = 5fiieUSthRR", "filename": "扫描全能王 2026-02-24 14.47_page_229.jpg"}, {"page": 260, "text": "Mae EEE —-=HAWHREMSHI.pee EAE Py BPGHINA SAAT EHe AE OE ob EFKF=ZR—-PQAE EsFRHOBEBESTFKFROACHA y—HREMARAXHA ER ER al tHMSFRuerZeREFE—-SH-] -RERAXCEBCZEN ALERT -—| HA OCRRAESELEMNERE| NK| HEBay,wt 5+ta.|a} z=!Seww", "filename": "扫描全能王 2026-02-24 14.47_page_230.jpg"}, {"page": 261, "text": "~~]Be人nea PH FRE A B— HAMA A Meoe eee bee= PNA -AAMANF ERA RF+R EA UA AR He ae FsAWHIKRF +OREHBRAAFHALAS4 +uM* fpeee 源H7 EKEFBe<He测从ars", "filename": "扫描全能王 2026-02-24 14.47_page_231.jpg"}, {"page": 262, "text": "HHFRLA=RM ARLE OYAR 6 F dc a he TE 4 -F LZBY Bs 2S BA BH ak EA & Ah EBE+ T EBB te ye SF=SEB-BEWARAB-— Bi#) F = Fe AWee BA] 4一ape =etRie.ae:一4", "filename": "扫描全能王 2026-02-24 14.47_page_232.jpg"}, {"page": 263, "text": "B 党RAN GKMMRTKRM ARLESFE] HRM STAR HH ETEFK FERx We RK-HERLAE BHA LAXFS) RAK RA OT A OE ROPS SHKMBEM A= A=+E— ia+ RGF BKKACFKS| HH—-¥-HRALAM AC Ad BR=] HEAERRACFRSD Ec“| FENFEMAARBKIE—FMANA AAD KAT£—-FREL—-BRIFRAELA{A ESEAFASHRBRHZ HK HRa] it ZH MEAF AH RMA A-FGRIMM ACARRM REE[Ae SESMT CARH ALEittRB人 人和es", "filename": "扫描全能王 2026-02-24 14.47_page_233.jpg"}, {"page": 264, "text": "KRM ARRAN 诗 三 全A A WO Be aR HE Se MEKLF NCTE Rw x BiHO-HFKESMAF A Be 吕WBKEAL-FRORAOF RKKMBZREWH ARAB Awe E BEN Ee Eee BH 4)— Wx EA-AKFAR-F =fu a =F Hh Ae 76 eB BO Ae Sr =RF K-H#-LKABLFEA Dg A a atec BR itHane |eBIAFee.", "filename": "扫描全能王 2026-02-24 14.47_page_234.jpg"}, {"page": 265, "text": "\\ aB ae HE WH oc AE Be= ne i 4 WIE MKcl we Hie aK MBSWa oe HH We Be HI 8源 RASAme bees, WHASALEH A= |LALK RH RB TR OM M+ F一 中 证 和 中 iE — edRSA He HAF Le eR AFHERE ANENFRBRtmirres :VeeMAA :At eeiaSitRZz人=", "filename": "扫描全能王 2026-02-24 14.47_page_235.jpg"}, {"page": 266, "text": "lgF 4 fs= 4we 7 %= — i EBHEA a BeBAEFA=RB BENEBEENPS+70 BY ma ee BLme — ¥ + RE MBS] |HHAE By FAE-RRMY —See: BHEAERS|¥ eB at A Ae == 国人 i4A TA Hees Be neAEE je BF", "filename": "扫描全能王 2026-02-24 14.47_page_236.jpg"}, {"page": 267, "text": "4下|p HSER AKLAS BERNERRIX=- FHSAA EKER TEFRAPSI ADAKRSSRE-FSEEHEAKWPS] WF MR AAS HeHALRB =H RKETERSRERESAAWAHT REL FOM-#ZeB- |HARSFREREB TAF K-ARLERSA RAKE AKAXMEACT Hw; HZEREKETEREEH AOA| a| J+ xBi: BtBe| wroR从到下", "filename": "扫描全能王 2026-02-24 14.47_page_237.jpg"}, {"page": 268, "text": "ca =和ZsHACFOATAFHAALH FEma — mp Ae eK BR] eHSER AER TOW F =Bt — Fa ae th — Je A =MAARKFCRREBACFT—-FxrAK A oH[上 祖上 本 HSE K 区ROS RoSFFA LAS Be At A feat YBOR 76 F OZ 5 Fet E| _oe", "filename": "扫描全能王 2026-02-24 14.47_page_238.jpg"}, {"page": 269, "text": "EEARERMALA® ”六 KF ORF REA HRM人 ROWARLAHT—% ~HH We Ae 56 PEAY Ae Ye| HM +-RE AMESan Wt ON ANE BS +E ER= det Re ME A — Ra He BYx Fo P-WR HESSa fe AL AE ee AB| eGR AEEE_RR FCZARe HESaeK GR mAL EK fpFe KeSPF eloBA tA st2 peal HESBennitFsweaacin", "filename": "扫描全能王 2026-02-24 14.47_page_239.jpg"}, {"page": 270, "text": "办 ee ~ .. al|FeB人Ai=|Fx=F-MARUAY—-HE atEREAZRSM AAR BF 4HEAFARM BANFFRe J DO 2S Wa i Eh eB -A HG BL & EEGEBXIEBHea ER1 ee :HA SAS DFPtt 70 Biee.|~=", "filename": "扫描全能王 2026-02-24 14.47_page_240.jpg"}, {"page": 271, "text": "| Ht R—- TM RSG ASAF ~E 2 WH Ju He OR a fet wo) ewe Be从 FARK FT Ais A HE ER — Ix SANA EK MAS DE PKne WAS CMRALRERAFRAF eR a OE — we= BtuFeen ree BHEE MAAS SEF下 E+ RGEEM AAS WeF-R-BRRD ETEEe — we和 HeSAK Bp3 MAMAS BS. + xtfiieas#Bfi", "filename": "扫描全能王 2026-02-24 14.47_page_241.jpg"}, {"page": 272, "text": "vyeeAXREWHAN HS PMS 发fee Fc BHA A Ae a a Ab He Be QM QA -ASMASAF MME KM ENBe TEA 5G ss EN AE EAM ae SNFRE—-PRETELSWRPRG HEao-ax 于MAAK PL ‘<thu F 上trae Ry] —\\HE 5G BR \\", "filename": "扫描全能王 2026-02-24 14.47_page_242.jpg"}, {"page": 273, "text": "_| EFSARGHAAKRS © PRTE| cake EwE MER NM ELARGE] WHR—-MULBCR—-H~. MEASSS] RAE Ae eu A Ua Fe A ARis) WHE FARHAAF =RGRye EROHee Ay、 ereBF4fimnFsa中&", "filename": "扫描全能王 2026-02-24 14.47_page_243.jpg"}, {"page": 274, "text": "a,|4h 4WARELAFAWNA MASHAF KE BB t oR G-~LA-FARAWER— p>] BHoe MP RA A ee zyAE-BMEABRANEF carNadenae |ae.>.z$", "filename": "扫描全能王 2026-02-24 14.47_page_244.jpg"}, {"page": 275, "text": "> peb a ARR E—-RA ;BA—Aith-£—-Re *Elk Mm aA HFAEK MRI] + EPEFR HOT F| ME | FAM AKRM AI AS ReBe) we AEE AR Be关注 中 六HEI K: Brae wl下 YA AEieEfiitUNit#Aa3>", "filename": "扫描全能王 2026-02-24 14.47_page_245.jpg"}, {"page": 276, "text": "yrFAS F KOR HOSE — ALSMASA HEL ESR FALHETBAONFRAT BAF BSRIAWAABKAWA AISHA Ae AE Ro HS BH OF 7a=e.一=&&", "filename": "扫描全能王 2026-02-24 14.47_page_246.jpg"}, {"page": 277, "text": "| =k本 iWLSAKHATOERUAFAEK WMSASF A+TE—eM BBCP ST= FBLAF MENEZ HM ANAS OPMi #SAMAToCFLKE MEREey OT UER站 WH — #9 BH= HES a= FEET EHMAGA+5BeKiBeKNttt洲三十tu t", "filename": "扫描全能王 2026-02-24 14.47_page_247.jpg"}, {"page": 278, "text": "Mas aafEMR-FRARLEER | 4 人FREESE MAF HT Me BaSH+AFSMAARSK ty JESBe A A HE oF 放FA A AeA We iIt VAS eeseem 一one f ayHap Se Be =FIRSTaene,", "filename": "扫描全能王 2026-02-24 14.47_page_248.jpg"}, {"page": 279, "text": "IO了E&=Bybs Bt — A5 tH 36é aeelwBog eefiBiySsy[=-pa“1W", "filename": "扫描全能王 2026-02-24 14.47_page_249.jpg"}, {"page": 280, "text": "|WALAneee fel =一ee.=:3", "filename": "扫描全能王 2026-02-24 14.47_page_250.jpg"}];
+        const totalPages = 280;
+        
+        let currentMode = ''; // 'free' or 'search'
+        let freeCurrentPage = 1;
+        let searchCurrentPage = 1;
+        let modalCurrentPage = 1;
+        let customKeywords = {};
+        
+        try {
+            const saved = localStorage.getItem('genealogyKeywords');
+            if (saved) customKeywords = JSON.parse(saved);
+        } catch(e) {}
+        
+        function mergeCustomKeywords() {
+            indexData.forEach(item => {
+                if (customKeywords[item.page]) {
+                    item.text = [...new Set([...item.text.split(' '), ...customKeywords[item.page]])].join(' ');
+                }
+            });
+        }
+        mergeCustomKeywords();
+        
+        // 页面切换
+        function showView(viewId) {
+            document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+        
+        function goHome() {
+            closeModal();
+            showView('homeView');
+        }
+        
+        function goToFreeView() {
+            showView('freeView');
+            generateFreeGrid();
+        }
+        
+        function goToSearchView() {
+            showView('searchView');
+            generateSearchGrid();
+        }
+        
+        // 生成自由查找的页码网格
+        function generateFreeGrid() {
+            const grid = document.getElementById('freePageGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn';
+                btn.setAttribute('data-page', i);
+                btn.textContent = i;
+                btn.onclick = () => openFreeModal(i);
+                grid.appendChild(btn);
+            }
+        }
+        
+        // 加载自由查找的页面
+        function loadFreePage(pageNum) {
+            freeCurrentPage = pageNum;
+            document.querySelectorAll('#freePageGrid .page-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.getAttribute('data-page')) === pageNum);
+            });
+        }
+        
+        function freePrev() { if (freeCurrentPage > 1) loadFreePage(freeCurrentPage - 1); }
+        function freeNext() { if (freeCurrentPage < totalPages) loadFreePage(freeCurrentPage + 1); }
+        
+        // 生成搜索页的页码网格
+        function generateSearchGrid() {
+            const grid = document.getElementById('searchPageGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn';
+                btn.setAttribute('data-page', i);
+                btn.textContent = i;
+                btn.onclick = () => openSearchModal(i);
+                grid.appendChild(btn);
+            }
+        }
+        
+        // 加载搜索页的页面
+        function loadSearchPage(pageNum) {
+            searchCurrentPage = pageNum;
+            document.querySelectorAll('#searchPageGrid .page-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.getAttribute('data-page')) === pageNum);
+            });
+        }
+        
+        function searchPrev() { if (searchCurrentPage > 1) loadSearchPage(searchCurrentPage - 1); }
+        function searchNext() { if (searchCurrentPage < totalPages) loadSearchPage(searchCurrentPage + 1); }
+        
+        // 搜索功能
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            if (!query) return alert('请输入关键词');
+            
+            document.querySelectorAll('#searchPageGrid .page-btn').forEach(btn => btn.classList.remove('highlight'));
+            
+            const results = indexData.filter(item => item.text.toLowerCase().includes(query));
+            
+            if (results.length > 0) {
+                results.forEach(result => {
+                    const btn = document.querySelector(`#searchPageGrid .page-btn[data-page="${result.page}"]`);
+                    if (btn) btn.classList.add('highlight');
+                });
+                document.getElementById('searchPageGrid').style.display = 'flex';
+                alert('找到 ' + results.length + ' 个匹配项，已高亮显示');
+            } else {
+                alert('未找到匹配内容');
+            }
+        }
+        
+        // ========== 弹窗功能 ==========
+        function getModalNavButtons() {
+            const prevBtn = modalNavButtons[0];
+            const nextBtn = modalNavButtons[1];
+            prevBtn.disabled = (modalCurrentPage <= 1);
+            nextBtn.disabled = (modalCurrentPage >= totalPages);
+        }
+        
+        function openModal(pageNum, mode) {
+            currentMode = mode;
+            modalCurrentPage = pageNum;
+            
+            const pageData = indexData.find(item => item.page === pageNum);
+            if (pageData && pageData.filename) {
+                const img = document.getElementById('modalImage');
+                img.src = 'images/' + pageData.filename;
+                img.className = (pageNum === 196) ? 'special-rotate' : '';
+                document.getElementById('modalPageInfo').textContent = '第 ' + pageNum + ' 页 / 共 ' + totalPages + ' 页';
+            }
+            
+            document.getElementById('imageModal').classList.add('show');
+            
+            // 更新对应页码的选中状态
+            const gridId = (mode === 'free') ? '#freePageGrid' : '#searchPageGrid';
+            document.querySelectorAll(gridId + ' .page-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.getAttribute('data-page')) === pageNum);
+            });
+            
+            getModalNavButtons();
+        }
+        
+        function openFreeModal(pageNum) {
+            openModal(pageNum, 'free');
+        }
+        
+        function openSearchModal(pageNum) {
+            openModal(pageNum, 'search');
+        }
+        
+        function closeModal(event) {
+            if (event) {
+                document.getElementById('imageModal').classList.remove('show');
+            } else {
+                document.getElementById('imageModal').classList.remove('show');
+            }
+        }
+        
+        function modalPrev() {
+            if (modalCurrentPage > 1) {
+                openModal(modalCurrentPage - 1, currentMode);
+            }
+        }
+        
+        function modalNext() {
+            if (modalCurrentPage < totalPages) {
+                openModal(modalCurrentPage + 1, currentMode);
+            }
+        }
+        
+        // 获取导航按钮
+        const modalNavButtons = [
+            document.querySelector('.modal-nav .modal-nav-btn:nth-child(1)'),
+            document.querySelector('.modal-nav .modal-nav-btn:nth-child(2)')
+        ];
+        
+        // 键盘控制
+        document.addEventListener('keydown', function(e) {
+            const modalOpen = document.getElementById('imageModal').classList.contains('show');
+            
+            if (modalOpen) {
+                if (e.key === 'Escape') closeModal();
+                else if (e.key === 'ArrowLeft') modalPrev();
+                else if (e.key === 'ArrowRight') modalNext();
+            }
+        });
+    </script>
+
+    <!-- 版权信息 -->
+    <div class="footer-credit">技术支持：汪英平</div>
+</body>
+</html>
